@@ -71,6 +71,10 @@ export default function Settings() {
   const [isSendingUpcoming, setIsSendingUpcoming] = useState(false);
   const [isSendingPendingBills, setIsSendingPendingBills] = useState(false);
   const [isSendingReadyBilling, setIsSendingReadyBilling] = useState(false);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [selectedUserPermissions, setSelectedUserPermissions] = useState<any[]>([]);
+  const [adminCount, setAdminCount] = useState(0);
+  const AVAILABLE_PAGES = ['dashboard', 'bookings', 'programs', 'booking-links', 'reports', 'settings', 'user-management'];
 
   useEffect(() => {
     loadEmailConfig();
@@ -98,6 +102,9 @@ export default function Settings() {
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
+        // Count admins
+        const admins = data.filter((u: any) => u.role === 'admin').length;
+        setAdminCount(admins);
       }
     } catch (error) {
       console.error('Failed to load users:', error);
@@ -530,6 +537,53 @@ export default function Settings() {
     setShowCreateUserDialog(true);
   };
 
+  const openPermissionsDialog = async (user: any) => {
+    setSelectedUser(user);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/users/${user.id}/permissions`, { credentials: 'include' });
+      if (res.ok) {
+        const permissions = await res.json();
+        setSelectedUserPermissions(permissions);
+        setShowPermissionsDialog(true);
+      } else {
+        toast.error('Failed to load permissions');
+      }
+    } catch (error) {
+      toast.error('Error loading permissions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePermission = (page: string) => {
+    setSelectedUserPermissions(prev =>
+      prev.map(p => p.page === page ? { ...p, can_access: !p.can_access } : p)
+    );
+  };
+
+  const savePermissions = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/users/${selectedUser.id}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ permissions: selectedUserPermissions }),
+      });
+      if (res.ok) {
+        toast.success('Permissions updated successfully');
+        setShowPermissionsDialog(false);
+      } else {
+        toast.error('Failed to update permissions');
+      }
+    } catch (error) {
+      toast.error('Error updating permissions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openPasswordDialog = (user: any) => {
     setSelectedUser(user);
     setNewPassword('');
@@ -740,6 +794,9 @@ export default function Settings() {
                           </CardTitle>
                           <CardDescription>
                             Manage user accounts, roles, and permissions (Admin Only)
+                            <span className={`ml-2 font-semibold ${adminCount >= 2 ? 'text-orange-600' : 'text-green-600'}`}>
+                              • Administrators: {adminCount}/2
+                            </span>
                           </CardDescription>
                         </div>
                         <Button onClick={openCreateUserDialog} className="gap-2">
@@ -781,7 +838,7 @@ export default function Settings() {
                                   </Badge>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex flex-col gap-2">
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -791,6 +848,17 @@ export default function Settings() {
                                     <UserCog className="h-4 w-4 mr-2" />
                                     Edit Profile
                                   </Button>
+                                  {user.role !== 'admin' && (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => openPermissionsDialog(user)}
+                                      className="w-full"
+                                    >
+                                      <Shield className="h-4 w-4 mr-2" />
+                                      Manage Permissions
+                                    </Button>
+                                  )}
                                 </div>
                               </CardContent>
                             </Card>
@@ -1365,11 +1433,15 @@ export default function Settings() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Administrator</SelectItem>
+                  <SelectItem value="admin" disabled={adminCount >= 2}>
+                    Administrator {adminCount >= 2 ? '(Limit reached: 2/2)' : ''}
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Administrators have full access to all features
+              <p className={`text-xs ${adminCount >= 2 ? 'text-orange-600' : 'text-muted-foreground'}`}>
+                {adminCount >= 2
+                  ? '⚠️ Maximum 2 administrators allowed. Admin option is disabled.'
+                  : 'Administrators have full access to all features'}
               </p>
             </div>
 
@@ -1410,6 +1482,68 @@ export default function Settings() {
               disabled={saving || !createUserData.name || !createUserData.email || !createUserData.password}
             >
               {saving ? "Creating User..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permissions Management Dialog */}
+      <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Manage Page Permissions
+            </DialogTitle>
+            <DialogDescription>
+              Control which pages {selectedUser?.name} can access. Administrators always have full access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            {selectedUserPermissions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">Loading permissions...</p>
+            ) : (
+              selectedUserPermissions.map((perm) => (
+                <div
+                  key={perm.page}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium capitalize">
+                      {perm.page.replace('-', ' ')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {perm.page === 'dashboard' && 'Main dashboard and overview'}
+                      {perm.page === 'bookings' && 'View and manage bookings'}
+                      {perm.page === 'programs' && 'View and manage training programs'}
+                      {perm.page === 'booking-links' && 'Create and manage booking links'}
+                      {perm.page === 'reports' && 'View reports and analytics'}
+                      {perm.page === 'settings' && 'Application settings'}
+                      {perm.page === 'user-management' && 'Manage users (admin only)'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={perm.can_access}
+                    onCheckedChange={() => togglePermission(perm.page)}
+                    disabled={saving}
+                  />
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPermissionsDialog(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={savePermissions}
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save Permissions"}
             </Button>
           </DialogFooter>
         </DialogContent>
