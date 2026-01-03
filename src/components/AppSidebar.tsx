@@ -94,21 +94,23 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">Quick Actions</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="px-2 py-2">
-              <Button
-                onClick={onAddBooking}
-                className="w-full justify-start gap-2 bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground"
-                size={isCollapsed ? "icon" : "default"}
-              >
-                <Plus className="h-4 w-4" />
-                {!isCollapsed && <span>Add Booking</span>}
-              </Button>
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {canAccessPage("add-booking") && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/70">Quick Actions</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-2 py-2">
+                <Button
+                  onClick={onAddBooking}
+                  className="w-full justify-start gap-2 bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground"
+                  size={isCollapsed ? "icon" : "default"}
+                >
+                  <Plus className="h-4 w-4" />
+                  {!isCollapsed && <span>Add Booking</span>}
+                </Button>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70">Navigation</SidebarGroupLabel>

@@ -1514,6 +1514,7 @@ export default function Settings() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {perm.page === 'dashboard' && 'Main dashboard and overview'}
+                      {perm.page === 'add-booking' && 'Access to create new bookings'}
                       {perm.page === 'bookings' && 'View and manage bookings'}
                       {perm.page === 'programs' && 'View and manage training programs'}
                       {perm.page === 'booking-links' && 'Create and manage booking links'}

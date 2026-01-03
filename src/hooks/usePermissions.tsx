@@ -37,6 +37,7 @@ export function usePermissions() {
             if (userData.role === 'admin') {
                 const allPermissions: Permission[] = [
                     { page: 'dashboard', can_access: true },
+                    { page: 'add-booking', can_access: true },
                     { page: 'bookings', can_access: true },
                     { page: 'programs', can_access: true },
                     { page: 'booking-links', can_access: true },

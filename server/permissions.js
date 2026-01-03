@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Available pages in the system
 export const AVAILABLE_PAGES = [
     'dashboard',
+    'add-booking',
     'bookings',
     'programs',
     'booking-links',
