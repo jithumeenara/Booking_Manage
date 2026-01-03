@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Mail, Server, Key, Lock, Save, Users, Shield, Camera, UserCog, Settings as SettingsIcon, Send, Calendar, DollarSign, FileText } from "lucide-react";
+import { Mail, Server, Key, Lock, Save, Users, Shield, Camera, UserCog, Settings as SettingsIcon, Send, Calendar, DollarSign, FileText, UserPlus, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,11 +34,20 @@ export default function Settings() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [showComprehensiveEditDialog, setShowComprehensiveEditDialog] = useState(false);
+  const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [editFormData, setEditFormData] = useState({
     name: "",
     email: "",
     mobile: "",
     role: "",
+    password: "",
+    photo: ""
+  });
+  const [createUserData, setCreateUserData] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    role: "user",
     password: "",
     photo: ""
   });
@@ -244,12 +253,12 @@ export default function Settings() {
         credentials: 'include',
         body: JSON.stringify(emailConfig),
       });
-      
+
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to save');
       }
-      
+
       toast.success("Email configuration saved successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to save email configuration");
@@ -354,13 +363,13 @@ export default function Settings() {
         credentials: 'include',
         body: JSON.stringify({ to_email: toEmail }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || 'Test failed');
       }
-      
+
       toast.success(data.message || 'Test email sent successfully!');
     } catch (error: any) {
       toast.error(error.message || 'Failed to send test email');
@@ -409,7 +418,7 @@ export default function Settings() {
           body: JSON.stringify({ role: editFormData.role }),
         });
       }
-      
+
       // Update password if provided
       if (editFormData.password) {
         await fetch(`/api/users/${selectedUser.id}/password`, {
@@ -419,7 +428,7 @@ export default function Settings() {
           body: JSON.stringify({ newPassword: editFormData.password }),
         });
       }
-      
+
       // Update photo if changed
       if (editFormData.photo !== selectedUser.photo) {
         await fetch(`/api/users/${selectedUser.id}/photo`, {
@@ -429,7 +438,7 @@ export default function Settings() {
           body: JSON.stringify({ photo: editFormData.photo }),
         });
       }
-      
+
       toast.success('User profile updated successfully');
       setShowComprehensiveEditDialog(false);
       loadUsers();
@@ -448,6 +457,77 @@ export default function Settings() {
       setEditFormData(prev => ({ ...prev, photo: String(reader.result || '') }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const createNewUser = async () => {
+    if (!createUserData.name || !createUserData.email || !createUserData.password) {
+      toast.error('Name, email, and password are required');
+      return;
+    }
+    if (createUserData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(createUserData.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(createUserData),
+      });
+
+      if (res.ok) {
+        toast.success('User created successfully!');
+        setShowCreateUserDialog(false);
+        setCreateUserData({
+          name: "",
+          email: "",
+          mobile: "",
+          role: "user",
+          password: "",
+          photo: ""
+        });
+        loadUsers();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to create user');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create user');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreatePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCreateUserData(prev => ({ ...prev, photo: String(reader.result || '') }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const openCreateUserDialog = () => {
+    setCreateUserData({
+      name: "",
+      email: "",
+      mobile: "",
+      role: "user",
+      password: "",
+      photo: ""
+    });
+    setShowCreateUserDialog(true);
   };
 
   const openPasswordDialog = (user: any) => {
@@ -604,8 +684,8 @@ export default function Settings() {
 
                       {/* Test Button */}
                       <div className="pt-4">
-                        <Button 
-                          onClick={handleTestEmail} 
+                        <Button
+                          onClick={handleTestEmail}
                           disabled={isTesting}
                           className="w-full md:w-auto px-8"
                         >
@@ -614,8 +694,8 @@ export default function Settings() {
                       </div>
 
                       <div className="pt-4 border-t">
-                        <Button 
-                          onClick={handleSave} 
+                        <Button
+                          onClick={handleSave}
                           disabled={isSaving}
                           className="w-full"
                         >
@@ -652,13 +732,21 @@ export default function Settings() {
                 <TabsContent value="users" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary" />
-                        User Management
-                      </CardTitle>
-                      <CardDescription>
-                        Manage user accounts, roles, and permissions (Admin Only)
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-primary" />
+                            User Management
+                          </CardTitle>
+                          <CardDescription>
+                            Manage user accounts, roles, and permissions (Admin Only)
+                          </CardDescription>
+                        </div>
+                        <Button onClick={openCreateUserDialog} className="gap-2">
+                          <UserPlus className="h-4 w-4" />
+                          Create New User
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {loadingUsers ? (
@@ -739,7 +827,7 @@ export default function Settings() {
                         <Switch
                           id="telegram-enabled"
                           checked={telegramConfig.enabled}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             setTelegramConfig(prev => ({ ...prev, enabled: checked }))
                           }
                         />
@@ -788,7 +876,7 @@ export default function Settings() {
                             <Switch
                               id="notify-link-booking"
                               checked={telegramConfig.notify_on_link_booking}
-                              onCheckedChange={(checked) => 
+                              onCheckedChange={(checked) =>
                                 setTelegramConfig(prev => ({ ...prev, notify_on_link_booking: checked }))
                               }
                             />
@@ -800,7 +888,7 @@ export default function Settings() {
                             <Switch
                               id="notify-billing-ready"
                               checked={telegramConfig.notify_on_billing_ready}
-                              onCheckedChange={(checked) => 
+                              onCheckedChange={(checked) =>
                                 setTelegramConfig(prev => ({ ...prev, notify_on_billing_ready: checked }))
                               }
                             />
@@ -812,7 +900,7 @@ export default function Settings() {
                             <Switch
                               id="notify-month-end"
                               checked={telegramConfig.notify_on_month_end}
-                              onCheckedChange={(checked) => 
+                              onCheckedChange={(checked) =>
                                 setTelegramConfig(prev => ({ ...prev, notify_on_month_end: checked }))
                               }
                             />
@@ -824,7 +912,7 @@ export default function Settings() {
                             <Switch
                               id="notify-login"
                               checked={telegramConfig.notify_on_login}
-                              onCheckedChange={(checked) => 
+                              onCheckedChange={(checked) =>
                                 setTelegramConfig(prev => ({ ...prev, notify_on_login: checked }))
                               }
                             />
@@ -1125,8 +1213,8 @@ export default function Settings() {
             {/* Role */}
             <div className="space-y-2">
               <Label htmlFor="edit-role">Role</Label>
-              <Select 
-                value={editFormData.role} 
+              <Select
+                value={editFormData.role}
                 onValueChange={(value) => setEditFormData(prev => ({ ...prev, role: value }))}
               >
                 <SelectTrigger>
@@ -1181,6 +1269,147 @@ export default function Settings() {
             </Button>
             <Button onClick={updateUserProfile} disabled={saving}>
               {saving ? "Saving Changes..." : "Save All Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create New User Dialog */}
+      <Dialog open={showCreateUserDialog} onOpenChange={setShowCreateUserDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Create New User
+            </DialogTitle>
+            <DialogDescription>
+              Add a new user to the system. All fields marked with * are required.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="create-name" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Name *
+              </Label>
+              <Input
+                id="create-name"
+                type="text"
+                value={createUserData.name}
+                onChange={(e) => setCreateUserData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter full name"
+                required
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="create-email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email *
+              </Label>
+              <Input
+                id="create-email"
+                type="email"
+                value={createUserData.email}
+                onChange={(e) => setCreateUserData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="user@example.com"
+                required
+              />
+            </div>
+
+            {/* Mobile */}
+            <div className="space-y-2">
+              <Label htmlFor="create-mobile">Mobile Number</Label>
+              <Input
+                id="create-mobile"
+                type="tel"
+                value={createUserData.mobile}
+                onChange={(e) => setCreateUserData(prev => ({ ...prev, mobile: e.target.value }))}
+                placeholder="+91 9876543210"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label htmlFor="create-password" className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Password *
+              </Label>
+              <Input
+                id="create-password"
+                type="password"
+                value={createUserData.password}
+                onChange={(e) => setCreateUserData(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Minimum 6 characters"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Password must be at least 6 characters long
+              </p>
+            </div>
+
+            {/* Role */}
+            <div className="space-y-2">
+              <Label htmlFor="create-role" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Role
+              </Label>
+              <Select
+                value={createUserData.role}
+                onValueChange={(value) => setCreateUserData(prev => ({ ...prev, role: value }))}
+              >
+                <SelectTrigger id="create-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Administrators have full access to all features
+              </p>
+            </div>
+
+            {/* Photo Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="create-photo" className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Profile Photo
+              </Label>
+              <Input
+                id="create-photo"
+                type="file"
+                accept="image/*"
+                onChange={handleCreatePhotoUpload}
+              />
+              {createUserData.photo && (
+                <div className="flex justify-center pt-2">
+                  <Avatar className="h-24 w-24 border-2 border-primary/20">
+                    <AvatarImage src={createUserData.photo} />
+                    <AvatarFallback>
+                      {createUserData.name?.charAt(0)?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateUserDialog(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={createNewUser}
+              disabled={saving || !createUserData.name || !createUserData.email || !createUserData.password}
+            >
+              {saving ? "Creating User..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
