@@ -5,7 +5,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://acsti-booking-api.onrender.com/api/:splat"  ← Change this
+  to = "https://acsti-booking-api.onrender.com/api/:splat"
   status = 200
   force = true
 
