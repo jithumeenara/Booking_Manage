@@ -1,7 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import { initAuth, signup, login, logout, me } from './auth.js';
+import { initAuth, signup, login, logout, me, deleteUser } from './auth.js';
 import { getBookings, getBooking, createBooking, updateBooking, deleteBooking } from './bookings.js';
 import { getBookingLink, getAllBookingLinks, createBookingLink, deleteBookingLink, sendBookingLinkEmail } from './booking_links.js';
 import { getUsers, updateUserRole, updateUserPhoto, resetUserPassword } from './users.js';
@@ -122,6 +122,7 @@ app.get('/api/users', getUsers);
 app.put('/api/users/:id/role', updateUserRole);
 app.put('/api/users/:id/photo', updateUserPhoto);
 app.put('/api/users/:id/password', resetUserPassword);
+app.delete('/api/users/:userId', deleteUser);
 
 // Email config routes
 app.get('/api/email-config', getEmailConfig);

@@ -118,3 +118,44 @@ export async function me(req, res) {
     return res.status(500).json({ error: 'Server error' });
   }
 }
+
+export async function deleteUser(req, res) {
+  try {
+    const { userId } = req.params;
+
+    // Get user from token
+    const token = req.cookies?.[COOKIE_NAME];
+    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+
+    let requesterId;
+    try {
+      const payload = jwt.verify(token, JWT_SECRET);
+      requesterId = payload.sub;
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Check if requester is admin
+    const [adminCheck] = await pool.query('SELECT role FROM users WHERE id = ?', [requesterId]);
+    if (!adminCheck.length || adminCheck[0].role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+    }
+
+    // Prevent deleting yourself
+    if (userId === requesterId) {
+      return res.status(400).json({ error: 'You cannot delete your own account' });
+    }
+
+    // Delete user
+    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({ ok: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}

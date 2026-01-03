@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePermissions } from "@/hooks/usePermissions";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
@@ -8,15 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Mail, Server, Key, Lock, Save, Users, Shield, Camera, UserCog, Settings as SettingsIcon, Send, Calendar, DollarSign, FileText, UserPlus, User } from "lucide-react";
+import { Mail, Server, Key, Lock, Save, Users, Shield, Camera, UserCog, Settings as SettingsIcon, Send, Calendar, DollarSign, FileText, UserPlus, User, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Settings() {
+  const { user: currentUser } = usePermissions();
   const [activeTab, setActiveTab] = useState("email");
+  // ... existing state ...
+
+  // Delete user state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
   const [emailConfig, setEmailConfig] = useState({
     smtp_host: "",
     smtp_port: "587",
@@ -584,6 +592,37 @@ export default function Settings() {
     }
   };
 
+  const confirmDeleteUser = (user: any) => {
+    setUserToDelete(user);
+    setShowDeleteDialog(true);
+  };
+
+  const performDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/users/${userToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        toast.success('User deleted successfully');
+        loadUsers(); // Reload user list
+        setShowDeleteDialog(false);
+        setUserToDelete(null);
+      } else {
+        const error = await res.json();
+        toast.error(error.error || 'Failed to delete user');
+      }
+    } catch (error) {
+      toast.error('Error deleting user');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openPasswordDialog = (user: any) => {
     setSelectedUser(user);
     setNewPassword('');
@@ -857,6 +896,17 @@ export default function Settings() {
                                     >
                                       <Shield className="h-4 w-4 mr-2" />
                                       Manage Permissions
+                                    </Button>
+                                  )}
+                                  {user.id !== currentUser?.id && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => confirmDeleteUser(user)}
+                                      className="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete User
                                     </Button>
                                   )}
                                 </div>
@@ -1549,6 +1599,33 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user account
+              <span className="font-semibold px-1">{userToDelete?.name}</span>
+              and remove their data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                performDeleteUser();
+              }}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              disabled={saving}
+            >
+              {saving ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
