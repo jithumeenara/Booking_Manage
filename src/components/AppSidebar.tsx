@@ -1,6 +1,7 @@
 import { Plus, Settings, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, User, Phone, Shield, Cog } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   Sidebar,
   SidebarContent,
@@ -38,8 +39,8 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isCollapsed = state === "collapsed";
-  const [isAdmin, setIsAdmin] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { canAccessPage, isAdmin } = usePermissions();
 
   useEffect(() => {
     const init = async () => {
@@ -47,10 +48,9 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
         const res = await fetch('/api/auth/me', { credentials: 'include' });
         if (res.ok) {
           const user = await res.json();
-          setIsAdmin(user.role === 'admin');
           setUserProfile(user);
         }
-      } catch {}
+      } catch { }
     };
     init();
   }, []);
@@ -66,21 +66,25 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
     }
   };
 
-  const menuItems = [
-    { title: "Dashboard", url: "/", icon: Home },
-    { title: "Manage Bookings", url: "/manage-bookings", icon: CalendarDays },
-    { title: "Financial Track", url: "/financial-track", icon: IndianRupee },
-    { title: "Report Generation", url: "/report-generation", icon: FileText },
-    { title: "Booking Links", url: "/booking-links", icon: LinkIcon },
+  // Define all menu items with their required permissions
+  const allMenuItems = [
+    { title: "Dashboard", url: "/", icon: Home, permission: "dashboard" },
+    { title: "Manage Bookings", url: "/manage-bookings", icon: CalendarDays, permission: "bookings" },
+    { title: "Financial Track", url: "/financial-track", icon: IndianRupee, permission: "programs" },
+    { title: "Report Generation", url: "/report-generation", icon: FileText, permission: "reports" },
+    { title: "Booking Links", url: "/booking-links", icon: LinkIcon, permission: "booking-links" },
   ];
+
+  // Filter menu items based on user permissions
+  const menuItems = allMenuItems.filter(item => canAccessPage(item.permission));
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border pb-4">
         <div className="flex items-center gap-3 px-2">
-          <img 
-            src={acstiLogo} 
-            alt="ACSTI Logo" 
+          <img
+            src={acstiLogo}
+            alt="ACSTI Logo"
             className={`object-contain transition-all ${isCollapsed ? 'h-8 w-8' : 'h-12 w-12'}`}
           />
           {!isCollapsed && (
@@ -124,7 +128,7 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {isAdmin && (
+              {isAdmin && canAccessPage("settings") && (
                 <SidebarMenuItem key="Settings">
                   <SidebarMenuButton
                     asChild
@@ -197,17 +201,16 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
                     </div>
                   </div>
                   <div className="mt-2 pt-2 border-t border-sidebar-border/30">
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md ${
-                      userProfile.role === 'admin' 
-                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' 
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md ${userProfile.role === 'admin'
+                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
                         : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                    }`}>
+                      }`}>
                       <Shield className="h-3 w-3" />
                       {userProfile.role === 'admin' ? 'Administrator' : 'User'}
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Logout Button - Separate */}
                 <Button
                   onClick={handleLogout}
