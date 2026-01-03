@@ -37,14 +37,14 @@ export default function Auth() {
         if (res.ok) {
           navigate("/");
         }
-      } catch {}
+      } catch { }
     };
     checkSession();
   }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password || !name || !role) {
       toast.error("Please fill in all fields");
       return;
@@ -77,7 +77,9 @@ export default function Auth() {
         return;
       }
 
-      toast.success("Account created! You can now sign in.");
+      // Show custom message from backend (includes permission info)
+      const successMessage = data?.message || "Account created! You can now sign in.";
+      toast.success(successMessage, { duration: 5000 }); // Show longer for important message
     } catch (error: any) {
       toast.error("An unexpected error occurred");
       console.error(error);
@@ -88,7 +90,7 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
@@ -133,9 +135,9 @@ export default function Auth() {
           <div className="flex justify-center">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 blur-2xl" />
-              <img 
-                src={acstiLogo} 
-                alt="ACSTI Kerala" 
+              <img
+                src={acstiLogo}
+                alt="ACSTI Kerala"
                 className="h-24 w-24 object-contain relative z-10"
               />
             </div>
@@ -152,20 +154,20 @@ export default function Auth() {
         <CardContent className="px-8 pb-8">
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-12 bg-gray-100 p-1 rounded-lg">
-              <TabsTrigger 
-                value="signin" 
+              <TabsTrigger
+                value="signin"
                 className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md font-semibold transition-all"
               >
                 Sign In
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="signup"
                 className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md font-semibold transition-all"
               >
                 Sign Up
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin" className="mt-6">
               <form onSubmit={handleSignIn} className="space-y-5">
                 <div className="space-y-2">
@@ -198,16 +200,16 @@ export default function Auth() {
                     />
                   </div>
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all" 
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
                   disabled={loading}
                 >
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup" className="mt-6">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -289,7 +291,7 @@ export default function Auth() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password" className="text-sm font-medium text-gray-700">Password</Label>
                   <div className="relative">
@@ -306,10 +308,10 @@ export default function Auth() {
                     />
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all mt-6" 
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all mt-6"
                   disabled={loading}
                 >
                   {loading ? "Creating account..." : "Create Account"}

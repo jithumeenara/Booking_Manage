@@ -7,6 +7,7 @@ import { getBookingLink, getAllBookingLinks, createBookingLink, deleteBookingLin
 import { getUsers, updateUserRole, updateUserPhoto, resetUserPassword } from './users.js';
 import { getEmailConfig, saveEmailConfig, testEmailConfig } from './email_config.js';
 import { getTelegramConfig, saveTelegramConfig, testTelegramConfig, sendUpcomingProgrammes, sendPendingBills, sendReadyForBilling } from './telegram.js';
+import { getUserPermissions, updateUserPermissions, getAllUsersWithPermissions } from './permissions.js';
 import { pool, ensureSchema } from './db.js';
 
 const app = express();
@@ -36,7 +37,7 @@ async function ensureMigrations() {
       console.error('Failed to ensure booked_via_link column:', err);
     }
   }
-  
+
   // Add email column to booking_links
   try {
     await pool.query(
@@ -54,7 +55,7 @@ async function ensureMigrations() {
       console.error('Failed to ensure email column in booking_links:', err);
     }
   }
-  
+
   // Add security column to email_config
   try {
     await pool.query(
@@ -72,7 +73,7 @@ async function ensureMigrations() {
       console.error('Failed to ensure security column in email_config:', err);
     }
   }
-  
+
   // Add is_active column to booking_links
   try {
     await pool.query(
@@ -134,6 +135,11 @@ app.post('/api/telegram-config/test', testTelegramConfig);
 app.post('/api/telegram/send-upcoming', sendUpcomingProgrammes);
 app.post('/api/telegram/send-pending-bills', sendPendingBills);
 app.post('/api/telegram/send-ready-billing', sendReadyForBilling);
+
+// User permissions routes
+app.get('/api/users/:userId/permissions', getUserPermissions);
+app.put('/api/users/:userId/permissions', updateUserPermissions);
+app.get('/api/users-with-permissions', getAllUsersWithPermissions);
 
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
