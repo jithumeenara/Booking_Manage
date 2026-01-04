@@ -20,14 +20,14 @@ export async function getEmailConfig(req, res) {
 export async function saveEmailConfig(req, res) {
   try {
     const { smtp_host, smtp_port, smtp_user, smtp_password, from_email, from_name, security } = req.body;
-    
+
     if (!smtp_host || !smtp_port || !smtp_user || !smtp_password || !from_email) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
     // Check if config exists
     const [existing] = await pool.query('SELECT id FROM email_config LIMIT 1');
-    
+
     if (existing.length > 0) {
       // Update existing config
       await pool.query(
@@ -120,6 +120,19 @@ export async function testEmailConfig(req, res) {
   } catch (e) {
     // Return detailed error to help diagnose (remove stack in production if needed)
     console.error('SMTP test failed:', e);
-    return res.status(500).json({ error: e?.message || 'SMTP test failed' });
+
+    // Extract meaningful error message
+    let errorMessage = e?.message || 'SMTP test failed';
+
+    // Check for specific Nodemailer error properties
+    if (e.code === 'EAUTH') {
+      errorMessage = 'Authentication failed. Please check your username and password.';
+    } else if (e.code === 'ESOCKET') {
+      errorMessage = 'Connection failed. Please check the SMTP host and port, or firewall settings.';
+    } else if (e.response) {
+      errorMessage = `SMTP Error: ${e.response}`;
+    }
+
+    return res.status(500).json({ error: errorMessage, details: e.code });
   }
 }
