@@ -48,9 +48,13 @@
     "cmdk": "^1.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "csurf": "^1.11.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.462.0",
@@ -70,6 +74,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
     "vaul": "^0.9.9",
+    "xss-clean": "^0.1.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -1,6 +1,10 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import xss from 'xss-clean';
+import hpp from 'hpp';
 import { initAuth, signup, login, logout, me, deleteUser } from './auth.js';
 import { getBookings, getBooking, createBooking, updateBooking, deleteBooking } from './bookings.js';
 import { getBookingLink, getAllBookingLinks, createBookingLink, deleteBookingLink, sendBookingLinkEmail } from './booking_links.js';
@@ -13,9 +17,53 @@ import { pool, ensureSchema } from './db.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy if strictly behind one (like Render/Netlify)
+app.set('trust proxy', 1);
+
+// Security Headers
+app.use(helmet());
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/api/', limiter);
+
+// Body Parser with limits
+app.use(express.json({ limit: '10kb' })); // Limit body size to prevent DoS
 app.use(cookieParser());
-app.use(express.json({ limit: '10mb' }));
-app.use(cors({ origin: true, credentials: true }));
+
+// Sanitize inputs
+app.use(xss());
+
+// Prevent HTTP Parameter Pollution
+app.use(hpp());
+
+// CORS Configuration
+const allowedOrigins = [
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'https://acsti-booking.netlify.app' // Add your production frontend domain here
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      // Ideally restricted, but for development we can be permissive or warn
+      // For a strict production environment, uncomment the error:
+      // return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+      return callback(null, true); // Fallback for now to avoid breaking existing workflow
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 
 // Ensure migrations that the app depends on
 async function ensureMigrations() {
@@ -93,9 +141,14 @@ async function ensureMigrations() {
   }
 }
 
-await ensureSchema();
-await ensureMigrations();
-await initAuth();
+try {
+  await ensureSchema();
+  await ensureMigrations();
+  await initAuth();
+} catch (error) {
+  console.error('Failed to initialize database or auth:', error);
+  process.exit(1);
+}
 
 // Auth routes
 app.post('/api/auth/signup', signup);
@@ -141,6 +194,12 @@ app.post('/api/telegram/send-ready-billing', sendReadyForBilling);
 app.get('/api/users/:userId/permissions', getUserPermissions);
 app.put('/api/users/:userId/permissions', updateUserPermissions);
 app.get('/api/users-with-permissions', getAllUsersWithPermissions);
+
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
