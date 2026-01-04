@@ -720,10 +720,10 @@ export default function Settings() {
                                 setEmailConfig(prev => ({
                                   ...prev,
                                   smtp_host: 'smtp-relay.brevo.com',
-                                  smtp_port: '587',
+                                  smtp_port: '2525',
                                   security: 'tls'
                                 }));
-                                toast.info("Set to Brevo settings. Please use your SMTP Login as username and SMTP Key as password.");
+                                toast.info("Set to Brevo settings (Port 2525 for Render compatibility). Use your SMTP Login as username and SMTP Key as password.");
                               } else if (value === 'gmail') {
                                 setEmailConfig(prev => ({
                                   ...prev,
@@ -731,7 +731,7 @@ export default function Settings() {
                                   smtp_port: '587',
                                   security: 'tls'
                                 }));
-                                toast.info("Set to Gmail settings. Please use your App Password.");
+                                toast.info("Set to Gmail settings. Please use your App Password. Note: Gmail SMTP may not work on Render.");
                               }
                             }}
                           >
