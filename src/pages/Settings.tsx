@@ -710,6 +710,46 @@ export default function Settings() {
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
+                          <Label htmlFor="provider" className="flex items-center gap-2 mb-2">
+                            <Server className="h-4 w-4" />
+                            Email Provider
+                          </Label>
+                          <Select
+                            onValueChange={(value) => {
+                              if (value === 'brevo') {
+                                setEmailConfig(prev => ({
+                                  ...prev,
+                                  smtp_host: 'smtp-relay.brevo.com',
+                                  smtp_port: '587',
+                                  security: 'tls'
+                                }));
+                                toast.info("Set to Brevo settings. Please use your SMTP Login as username and SMTP Key as password.");
+                              } else if (value === 'gmail') {
+                                setEmailConfig(prev => ({
+                                  ...prev,
+                                  smtp_host: 'smtp.gmail.com',
+                                  smtp_port: '587',
+                                  security: 'tls'
+                                }));
+                                toast.info("Set to Gmail settings. Please use your App Password.");
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a provider (Optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="custom">Custom SMTP</SelectItem>
+                              <SelectItem value="gmail">Gmail (App Password)</SelectItem>
+                              <SelectItem value="brevo">Brevo (formerly Sendinblue)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Select a provider to auto-fill recommended settings. For Render deployment, <strong>Brevo</strong> is recommended as it supports port 587/2525.
+                          </p>
+                        </div>
+
+                        <div className="md:col-span-2">
                           <Label htmlFor="smtp_host" className="flex items-center gap-2">
                             <Server className="h-4 w-4" />
                             SMTP Host
@@ -729,10 +769,10 @@ export default function Settings() {
                             type="number"
                             value={emailConfig.smtp_port}
                             onChange={(e) => handleChange('smtp_port', e.target.value)}
-                            placeholder="25"
+                            placeholder="587"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
-                            587 for TLS, 465 for SSL, 25 for default
+                            587 for TLS, 465 for SSL, 2525 for Brevo (Alternative)
                           </p>
                         </div>
 
@@ -757,7 +797,7 @@ export default function Settings() {
                             id="smtp_user"
                             value={emailConfig.smtp_user}
                             onChange={(e) => handleChange('smtp_user', e.target.value)}
-                            placeholder="Username"
+                            placeholder="Username (e.g., email@example.com)"
                           />
                         </div>
 
@@ -768,7 +808,7 @@ export default function Settings() {
                             type="password"
                             value={emailConfig.smtp_password}
                             onChange={(e) => handleChange('smtp_password', e.target.value)}
-                            placeholder="Password"
+                            placeholder="Password (App Password or API Key)"
                           />
                         </div>
 
