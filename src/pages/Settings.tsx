@@ -93,11 +93,17 @@ export default function Settings() {
   const loadEmailConfig = async () => {
     try {
       const res = await fetch('/api/email-config', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data) {
+      const text = await res.text();
+
+      try {
+        const data = text ? JSON.parse(text) : null;
+        if (res.ok && data) {
           setEmailConfig(data);
+        } else if (!res.ok) {
+          console.error('Failed to load email config:', data?.error || text || res.statusText);
         }
+      } catch (e) {
+        console.error('Failed to parse email config response:', text);
       }
     } catch (error) {
       console.error('Failed to load email config:', error);
@@ -269,9 +275,16 @@ export default function Settings() {
         body: JSON.stringify(emailConfig),
       });
 
+      const text = await res.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        throw new Error(`Server returned invalid response: ${text.slice(0, 100)}...`);
+      }
+
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to save');
+        throw new Error(data?.error || `Failed to save: ${res.status} ${res.statusText}`);
       }
 
       toast.success("Email configuration saved successfully!");
@@ -379,13 +392,20 @@ export default function Settings() {
         body: JSON.stringify({ to_email: toEmail }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Test failed');
+      const text = await res.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        // If the response is not JSON (e.g. 502 Bad Gateway HTML), throw meaningful error
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
       }
 
-      toast.success(data.message || 'Test email sent successfully!');
+      if (!res.ok) {
+        throw new Error(data?.error || 'Test failed');
+      }
+
+      toast.success(data?.message || 'Test email sent successfully!');
     } catch (error: any) {
       toast.error(error.message || 'Failed to send test email');
       console.error(error);
