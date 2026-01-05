@@ -64,10 +64,8 @@ function createTransporterFromConfig(cfg) {
   if (sec === 'ssl') {
     secure = true; // implicit SSL, typically 465
   } else if (sec === 'tls' || sec === 'starttls') {
-    secure = false; // STARTTLS
     requireTLS = true;
   } else if (sec === 'none') {
-    secure = false;
     ignoreTLS = true;
   } else if (sec === 'auto') {
     // Heuristic: port 465 => secure true, else STARTTLS
