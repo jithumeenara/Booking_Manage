@@ -85,7 +85,7 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 text-primary" />
@@ -93,12 +93,17 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
             {format(new Date(booking.start_date), "MMM dd, yyyy")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}
           </span>
         </div>
-        
+
         <div className="flex items-center gap-2 text-sm">
           <Phone className="h-4 w-4 text-primary" />
-          <span className="text-foreground">{booking.contact_person_phone}</span>
+          <a
+            href={`tel:${booking.contact_person_phone}`}
+            className="text-foreground hover:text-primary hover:underline md:pointer-events-none md:no-underline"
+          >
+            {booking.contact_person_phone}
+          </a>
         </div>
-        
+
         <div className="flex items-center gap-2 text-sm">
           <Users className="h-4 w-4 text-primary" />
           <span className="text-foreground">{booking.num_participants} participants</span>
@@ -109,7 +114,7 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
             <span className="font-medium">Purpose:</span> {booking.purpose}
           </div>
         )}
-        
+
         <div className="flex flex-wrap gap-2 mt-4">
           {booking.needs_accommodation && (
             <Badge variant="outline" className="text-xs gap-1">
@@ -130,12 +135,12 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
             </Badge>
           )}
         </div>
-        
+
         <div className="text-xs text-muted-foreground pt-2">
           Booked on: {format(new Date(booking.created_at), "MMM dd, yyyy 'at' HH:mm")}
         </div>
       </CardContent>
-      
+
       <CardFooter className="flex gap-2 flex-wrap">
         {onEdit && booking.status === 'pending' && (
           <Button variant="outline" size="sm" onClick={() => onEdit(booking)}>
@@ -157,7 +162,7 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
-            <AlertDialogHeader>
+              <AlertDialogHeader>
                 <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
                 <AlertDialogDescription>
                   Are you sure you want to cancel the booking for "{booking.department_agency}"? This action cannot be undone.

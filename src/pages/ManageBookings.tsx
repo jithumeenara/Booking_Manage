@@ -10,16 +10,37 @@ import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon, Filter } from "lucide-react";
+import { Calendar as CalendarIcon, Filter, LayoutGrid, Table as TableIcon, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { cn, getCurrentFinancialYear } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Trash2, Edit } from "lucide-react";
 
 const ManageBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | undefined>();
-  
+
   // Filter states
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
@@ -27,6 +48,25 @@ const ManageBookings = () => {
   const [selectedBookedBy, setSelectedBookedBy] = useState<string>("all");
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
+
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+
+  useEffect(() => {
+    // Set default view based on screen size
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setViewMode('grid');
+      } else {
+        setViewMode('table');
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchBookings();
@@ -157,7 +197,7 @@ const ManageBookings = () => {
         background: 'linear-gradient(135deg, rgba(240, 253, 244, 0.4), rgba(254, 252, 232, 0.3), rgba(247, 254, 231, 0.4))'
       }}>
         <AppSidebar onAddBooking={() => setEditDialogOpen(true)} />
-        
+
         <SidebarInset>
           {/* Header */}
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -184,6 +224,28 @@ const ManageBookings = () => {
                   <p className="text-muted-foreground mt-1">
                     {filteredBookings.length} of {bookings.length} bookings • Current FY: {getCurrentFinancialYear()}
                   </p>
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+                  <Button
+                    variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => setViewMode('table')}
+                  >
+                    <TableIcon className="h-4 w-4 mr-1.5" />
+                    Table
+                  </Button>
+                  <Button
+                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <LayoutGrid className="h-4 w-4 mr-1.5" />
+                    Grid
+                  </Button>
                 </div>
               </div>
 
@@ -332,7 +394,7 @@ const ManageBookings = () => {
                   </Link>
                 )}
               </div>
-            ) : (
+            ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredBookings.map((booking) => (
                   <BookingCard
@@ -344,6 +406,111 @@ const ManageBookings = () => {
                     showCompleteButton={true}
                   />
                 ))}
+              </div>
+            ) : (
+              <div className="rounded-md border bg-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Department/Agency</TableHead>
+                      <TableHead>Contact Person</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Participants</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBookings.map((booking) => {
+                      const isPastEndDate = new Date(booking.end_date) < new Date();
+                      const canMarkComplete = isPastEndDate && booking.status === 'pending';
+                      return (
+                        <TableRow key={booking.id}>
+                          <TableCell className="font-medium">
+                            {booking.department_agency}
+                            {booking.booked_via_link && (
+                              <Badge variant="outline" className="ml-2 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                                Link
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{booking.contact_person_name}</span>
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {booking.contact_person_phone}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">{booking.num_participants}</span>
+                              <span className="text-muted-foreground text-xs">participants</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {booking.status === 'complete' && <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500">Ready for billing</Badge>}
+                            {booking.status === 'payment_completed' && <Badge className="bg-green-600">Payment Completed</Badge>}
+                            {booking.status === 'payment_pending' && <Badge variant="destructive">Payment Pending</Badge>}
+                            {booking.status === 'pending' && <Badge variant="secondary">Pending</Badge>}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {booking.status === 'pending' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(booking)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canMarkComplete && (
+                                <Button
+                                  className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 h-8 text-xs px-2"
+                                  size="sm"
+                                  onClick={() => handleMarkComplete(booking)}
+                                >
+                                  Ready
+                                </Button>
+                              )}
+                              {booking.status === 'pending' && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive/90">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to cancel the booking for "{booking.department_agency}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(booking.id)}>
+                                        Cancel Booking
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </main>

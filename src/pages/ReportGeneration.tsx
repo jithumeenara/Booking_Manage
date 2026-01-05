@@ -30,7 +30,7 @@ const ReportGeneration = () => {
   const [printUpcoming, setPrintUpcoming] = useState(true);
   const [printRunning, setPrintRunning] = useState(true);
   const [printCompleted, setPrintCompleted] = useState(true);
-  const [printAll, setPrintAll] = useState(false);
+  const [printAll, setPrintAll] = useState(true);
   const [activeTab, setActiveTab] = useState("view");
 
   useEffect(() => {
@@ -393,6 +393,101 @@ const ReportGeneration = () => {
 
               <TabsContent value="print" className="mt-6 space-y-6">
                 <div className="bg-card p-6 rounded-lg border border-border/50">
+                  <h3 className="text-lg font-semibold mb-4">Report Filters</h3>
+                  <div className="flex flex-wrap gap-4 mb-6">
+                    {/* Month Filter */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">Month</span>
+                      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Months</SelectItem>
+                          <SelectItem value="0">January</SelectItem>
+                          <SelectItem value="1">February</SelectItem>
+                          <SelectItem value="2">March</SelectItem>
+                          <SelectItem value="3">April</SelectItem>
+                          <SelectItem value="4">May</SelectItem>
+                          <SelectItem value="5">June</SelectItem>
+                          <SelectItem value="6">July</SelectItem>
+                          <SelectItem value="7">August</SelectItem>
+                          <SelectItem value="8">September</SelectItem>
+                          <SelectItem value="9">October</SelectItem>
+                          <SelectItem value="10">November</SelectItem>
+                          <SelectItem value="11">December</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* From Date */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">From Date</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-[200px] justify-start text-left font-normal",
+                              !fromDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {fromDate ? format(fromDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={fromDate}
+                            onSelect={setFromDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* To Date */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">To Date</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-[200px] justify-start text-left font-normal",
+                              !toDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {toDate ? format(toDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={toDate}
+                            onSelect={setToDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="flex items-end">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedMonth("all");
+                          setFromDate(undefined);
+                          setToDate(undefined);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+
                   <h3 className="text-lg font-semibold mb-4">Select Report Section</h3>
                   <Select
                     value={

@@ -85,7 +85,7 @@ export const PrintReport = ({
     return (
       <div className="mb-10 page-break-inside-avoid">
         <div className="flex items-center gap-3 mb-5">
-          <div className="print-hide p-2.5 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-md">
+          <div className="print-hide p-2.5 bg-primary text-primary-foreground rounded-lg shadow-md">
             {icon}
           </div>
           <h3 className="text-xl font-bold text-gray-900">{title}</h3>
@@ -104,13 +104,13 @@ export const PrintReport = ({
               <tr className="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
                 <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Department/Agency</th>
                 <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Contact Person</th>
-                <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Programme Dates</th>
+                <th className="border-r border-gray-300 px-3 py-3 text-center font-extrabold text-sm text-black">Programme Dates</th>
                 <th className="px-3 py-3 text-center font-bold text-sm text-gray-800">Participants</th>
               </tr>
             </thead>
             <tbody>
               {programmeList.map((booking, index) => (
-                <tr key={booking.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-200`}>
+                <tr key={booking.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-primary/5 transition-colors border-b border-gray-200`}>
                   <td className="border-r border-gray-200 px-3 py-2.5 text-sm text-gray-800 font-medium">{booking.department_agency}</td>
                   <td className="border-r border-gray-200 px-3 py-2.5 text-sm">
                     <div className="font-medium text-gray-800">{booking.contact_person_name}</div>
@@ -119,7 +119,7 @@ export const PrintReport = ({
                   <td className="border-r border-gray-200 px-3 py-2.5 text-xs text-center text-gray-700">
                     {format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}
                   </td>
-                  <td className="px-3 py-2.5 text-sm text-center font-bold text-blue-700">{booking.num_participants}</td>
+                  <td className="px-3 py-2.5 text-sm text-center font-bold text-primary">{booking.num_participants}</td>
                 </tr>
               ))}
             </tbody>
@@ -134,7 +134,7 @@ export const PrintReport = ({
       <div className="mb-6 print:hidden">
         <button
           onClick={handlePrint}
-          className="inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+          className="inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 6 2 18 2 18 9" />
@@ -153,7 +153,7 @@ export const PrintReport = ({
               <img src={actiLogo} alt="ACSTI Kerala" className="h-16 w-16 object-contain" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">ACSTI KERALA</h1>
-                <h2 className="text-base text-gray-600 font-medium mt-1">Outside Programme Summary Report</h2>
+                <h2 className="text-base text-gray-600 font-medium mt-1">Programme Summary Report</h2>
               </div>
             </div>
             <div className="text-right">

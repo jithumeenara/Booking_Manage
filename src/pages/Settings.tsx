@@ -16,6 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 
 export default function Settings() {
   const { user: currentUser } = usePermissions();
@@ -82,13 +87,24 @@ export default function Settings() {
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [selectedUserPermissions, setSelectedUserPermissions] = useState<any[]>([]);
   const [adminCount, setAdminCount] = useState(0);
-  const AVAILABLE_PAGES = ['dashboard', 'bookings', 'programs', 'booking-links', 'reports', 'settings', 'user-management'];
+  const [financialYears, setFinancialYears] = useState<any[]>([]);
+  const [loadingFY, setLoadingFY] = useState(false);
+  const [isSavingFY, setIsSavingFY] = useState(false);
+  const [newFY, setNewFY] = useState({
+    name: "",
+    start_date: undefined as Date | undefined,
+    end_date: undefined as Date | undefined
+  });
+  const AVAILABLE_PAGES = ['dashboard', 'bookings', 'programs', 'booking-links', 'reports', 'settings', 'user-management', 'profile'];
 
   useEffect(() => {
     loadEmailConfig();
     loadUsers();
     loadTelegramConfig();
-  }, []);
+    if (activeTab === 'general') {
+      loadFinancialYears();
+    }
+  }, [activeTab]);
 
   const loadEmailConfig = async () => {
     try {
@@ -653,6 +669,84 @@ export default function Settings() {
     setSelectedUser(user);
     setPhotoUrl(user.photo || '');
     setShowPhotoDialog(true);
+  };
+
+  const loadFinancialYears = async () => {
+    setLoadingFY(true);
+    try {
+      const res = await fetch('/api/financial-years', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setFinancialYears(data);
+      }
+    } catch (error) {
+      console.error('Failed to load financial years:', error);
+    } finally {
+      setLoadingFY(false);
+    }
+  };
+
+  const handleAddFY = async () => {
+    if (!newFY.name || !newFY.start_date || !newFY.end_date) {
+      toast.error('Please fill all fields');
+      return;
+    }
+    setIsSavingFY(true);
+    try {
+      const res = await fetch('/api/financial-years', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newFY.name,
+          start_date: format(newFY.start_date, 'yyyy-MM-dd'),
+          end_date: format(newFY.end_date, 'yyyy-MM-dd')
+        }),
+      });
+      if (res.ok) {
+        toast.success('Financial Year added successfully');
+        setNewFY({ name: "", start_date: undefined, end_date: undefined });
+        loadFinancialYears();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to add Financial Year');
+      }
+    } catch (error) {
+      toast.error('Error adding Financial Year');
+    } finally {
+      setIsSavingFY(false);
+    }
+  };
+
+  const handleActivateFY = async (id: string) => {
+    try {
+      const res = await fetch(`/api/financial-years/${id}/activate`, {
+        method: 'PUT',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        toast.success('Financial Year activated');
+        loadFinancialYears();
+      }
+    } catch (error) {
+      toast.error('Error activating Financial Year');
+    }
+  };
+
+  const handleDeleteFY = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this Financial Year?')) return;
+    try {
+      const res = await fetch(`/api/financial-years/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        toast.success('Financial Year deleted');
+        loadFinancialYears();
+      }
+    } catch (error) {
+      toast.error('Error deleting Financial Year');
+    }
   };
 
   return (
@@ -1221,17 +1315,133 @@ export default function Settings() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <SettingsIcon className="h-5 w-5 text-primary" />
-                        General Settings
+                        <Calendar className="h-5 w-5 text-primary" />
+                        Financial Year Settings
                       </CardTitle>
                       <CardDescription>
-                        Additional settings and configurations (Coming Soon)
+                        Manage financial years. The active financial year will be used as the default for reports and bookings.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-center py-8 text-muted-foreground">
-                        More settings will be added here in future updates
-                      </p>
+                    <CardContent className="space-y-6">
+                      {/* Add New FY */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border p-4 rounded-lg bg-muted/20">
+                        <div className="space-y-2">
+                          <Label>Financial Year Name</Label>
+                          <Input
+                            placeholder="e.g. 2024-2025"
+                            value={newFY.name}
+                            onChange={(e) => setNewFY(prev => ({ ...prev, name: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2 flex flex-col">
+                          <Label>Start Date</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !newFY.start_date && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {newFY.start_date ? format(newFY.start_date, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <CalendarComponent
+                                mode="single"
+                                selected={newFY.start_date}
+                                onSelect={(date) => setNewFY(prev => ({ ...prev, start_date: date }))}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="space-y-2 flex flex-col">
+                          <Label>End Date</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !newFY.end_date && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {newFY.end_date ? format(newFY.end_date, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <CalendarComponent
+                                mode="single"
+                                selected={newFY.end_date}
+                                onSelect={(date) => setNewFY(prev => ({ ...prev, end_date: date }))}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <Button onClick={handleAddFY} disabled={isSavingFY}>
+                          {isSavingFY ? "Adding..." : "Add Financial Year"}
+                        </Button>
+                      </div>
+
+                      {/* List FYs */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="grid grid-cols-12 bg-muted/50 p-3 font-medium text-sm">
+                          <div className="col-span-3">Name</div>
+                          <div className="col-span-3">Start Date</div>
+                          <div className="col-span-3">End Date</div>
+                          <div className="col-span-3 text-right">Actions</div>
+                        </div>
+                        {loadingFY ? (
+                          <div className="p-4 text-center text-muted-foreground">Loading...</div>
+                        ) : financialYears.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">No financial years found</div>
+                        ) : (
+                          financialYears.map((fy) => (
+                            <div key={fy.id} className={cn(
+                              "grid grid-cols-12 p-3 items-center border-t text-sm",
+                              fy.is_active && "bg-primary/5"
+                            )}>
+                              <div className="col-span-3 font-medium flex items-center gap-2">
+                                {fy.name}
+                                {fy.is_active && (
+                                  <Badge variant="default" className="text-[10px] h-5">Active</Badge>
+                                )}
+                              </div>
+                              <div className="col-span-3 text-muted-foreground">
+                                {format(new Date(fy.start_date), "PPP")}
+                              </div>
+                              <div className="col-span-3 text-muted-foreground">
+                                {format(new Date(fy.end_date), "PPP")}
+                              </div>
+                              <div className="col-span-3 flex justify-end gap-2">
+                                {!fy.is_active && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleActivateFY(fy.id)}
+                                    className="h-8 text-xs hover:bg-primary/10 hover:text-primary"
+                                  >
+                                    Set Active
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteFY(fy.id)}
+                                  className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

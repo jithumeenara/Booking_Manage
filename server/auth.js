@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { notifyLogin } from './telegram.js';
+import { signupSchema } from './validation.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const COOKIE_NAME = 'auth_token';
@@ -17,10 +18,17 @@ export async function initAuth() {
   await ensureSchema();
 }
 
+
+
+// ...
+
 export async function signup(req, res) {
   try {
-    const { email, password, name, role = 'user', mobile, photo } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+    const validation = signupSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: 'Validation error', details: validation.error.format() });
+    }
+    const { email, password, name, role = 'user', mobile, photo } = validation.data;
 
     const [rows] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (rows.length) return res.status(409).json({ error: 'Email already registered' });

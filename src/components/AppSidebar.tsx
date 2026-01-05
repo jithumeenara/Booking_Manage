@@ -1,4 +1,4 @@
-import { Plus, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, Phone, Shield, Cog } from "lucide-react";
+import { Plus, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, Phone, Shield, Cog, UserPen } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -20,6 +20,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { toast } from "sonner";
 import acstiLogo from "@/assets/acsti-logo.png";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface AppSidebarProps {
   readonly onAddBooking?: () => void;
@@ -41,6 +44,17 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
   const isCollapsed = state === "collapsed";
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { canAccessPage, isAdmin } = usePermissions();
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    photo: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -63,6 +77,111 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
     } catch (error) {
       toast.error("Failed to log out");
       console.error(error);
+    }
+  };
+
+  const handleEditProfile = () => {
+    if (userProfile) {
+      setEditForm({
+        name: userProfile.name,
+        email: userProfile.email,
+        mobile: userProfile.mobile || "",
+        photo: userProfile.photo || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      setShowEditDialog(true);
+    }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditForm(prev => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!userProfile) return;
+
+    // Validate password if user wants to change it
+    if (editForm.newPassword || editForm.confirmPassword) {
+      if (!editForm.currentPassword) {
+        toast.error("Please enter your current password");
+        return;
+      }
+      if (editForm.newPassword !== editForm.confirmPassword) {
+        toast.error("New passwords do not match");
+        return;
+      }
+      if (editForm.newPassword.length < 6) {
+        toast.error("Password must be at least 6 characters");
+        return;
+      }
+    }
+
+    setIsSaving(true);
+    try {
+      // Update basic profile info including photo
+      const profileRes = await fetch(`/api/users/${userProfile.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: editForm.name,
+          email: editForm.email,
+          mobile: editForm.mobile || null,
+          photo: editForm.photo
+        })
+      });
+
+      if (!profileRes.ok) {
+        const error = await profileRes.json();
+        toast.error(error.error || "Failed to update profile");
+        setIsSaving(false);
+        return;
+      }
+
+      // Update password if provided
+      if (editForm.newPassword) {
+        const passwordRes = await fetch(`/api/users/${userProfile.id}/password`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            currentPassword: editForm.currentPassword,
+            newPassword: editForm.newPassword
+          })
+        });
+
+        if (!passwordRes.ok) {
+          const error = await passwordRes.json();
+          toast.error(error.error || "Failed to update password");
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      toast.success("Profile updated successfully");
+
+      // Refresh user profile
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      if (res.ok) {
+        const user = await res.json();
+        setUserProfile(user);
+      }
+
+      setShowEditDialog(false);
+    } catch (error) {
+      toast.error("Failed to update profile");
+      console.error(error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -201,6 +320,13 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
                         </p>
                       )}
                     </div>
+                    <button
+                      onClick={handleEditProfile}
+                      className="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center hover:bg-sidebar-accent/50 transition-colors"
+                      title="Edit Profile"
+                    >
+                      <UserPen className="h-4 w-4 text-sidebar-foreground/60 hover:text-primary" />
+                    </button>
                   </div>
                   <div className="mt-2 pt-2 border-t border-sidebar-border/30">
                     <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md ${userProfile.role === 'admin'
@@ -227,6 +353,110 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
           </div>
         )}
       </SidebarFooter>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>
+              Update your profile information and change your password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 overflow-y-auto px-1">
+            <div className="flex justify-center mb-4">
+              <div className="relative group cursor-pointer">
+                <Avatar className="h-24 w-24 border-4 border-muted">
+                  <AvatarImage src={editForm.photo} />
+                  <AvatarFallback className="text-2xl">
+                    {editForm.name?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <UserPen className="h-8 w-8 text-white" />
+                </div>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={handlePhotoChange}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Your name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                placeholder="your.email@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mobile">Mobile</Label>
+              <Input
+                id="mobile"
+                value={editForm.mobile}
+                onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
+                placeholder="Mobile number"
+              />
+            </div>
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium mb-3">Change Password (Optional)</p>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={editForm.currentPassword}
+                    onChange={(e) => setEditForm({ ...editForm, currentPassword: e.target.value })}
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={editForm.newPassword}
+                    onChange={(e) => setEditForm({ ...editForm, newPassword: e.target.value })}
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={editForm.confirmPassword}
+                    onChange={(e) => setEditForm({ ...editForm, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }

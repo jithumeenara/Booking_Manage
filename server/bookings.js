@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
 import { deactivateBookingLinkByToken } from './booking_links.js';
 import { notifyLinkBooking } from './telegram.js';
+import { bookingSchema } from './validation.js';
 
 // Helper: create nodemailer transporter from DB config
 async function createTransporterFromConfig() {
@@ -220,7 +221,7 @@ This is an automated confirmation email.
 // GET all bookings
 export async function getBookings(req, res) {
   try {
-    const [rows] = await pool.query('SELECT BIN_TO_UUID(id) as id, department_agency, contact_person_name, contact_person_email, contact_person_phone, start_date, end_date, num_participants, needs_accommodation, needs_food, needs_training_hall, number_of_halls, purpose, created_at, updated_at, status, total_bill_amount, completed_at, financial_year, bill_no, billed_date, num_of_bills, booked_via_link FROM bookings ORDER BY created_at DESC');
+    const [rows] = await pool.query('SELECT id, department_agency, contact_person_name, contact_person_email, contact_person_phone, start_date, end_date, num_participants, needs_accommodation, needs_food, needs_training_hall, number_of_halls, purpose, created_at, updated_at, status, total_bill_amount, completed_at, financial_year, bill_no, billed_date, num_of_bills, booked_via_link FROM bookings ORDER BY created_at DESC');
     return res.json(rows);
   } catch (e) {
     console.error(e);
@@ -232,7 +233,7 @@ export async function getBookings(req, res) {
 export async function getBooking(req, res) {
   try {
     const { id } = req.params;
-    const [rows] = await pool.query('SELECT BIN_TO_UUID(id) as id, department_agency, contact_person_name, contact_person_email, contact_person_phone, start_date, end_date, num_participants, needs_accommodation, needs_food, needs_training_hall, number_of_halls, purpose, created_at, updated_at, status, total_bill_amount, completed_at, financial_year, bill_no, billed_date, num_of_bills FROM bookings WHERE id = UUID_TO_BIN(?)', [id]);
+    const [rows] = await pool.query('SELECT id, department_agency, contact_person_name, contact_person_email, contact_person_phone, start_date, end_date, num_participants, needs_accommodation, needs_food, needs_training_hall, number_of_halls, purpose, created_at, updated_at, status, total_bill_amount, completed_at, financial_year, bill_no, billed_date, num_of_bills FROM bookings WHERE id = ?', [id]);
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
     return res.json(rows[0]);
   } catch (e) {
@@ -241,9 +242,19 @@ export async function getBooking(req, res) {
   }
 }
 
+
+
+// ... other imports ...
+
 // POST create booking
 export async function createBooking(req, res) {
   try {
+    const validation = bookingSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: 'Validation error', details: validation.error.format() });
+    }
+
+    // Use validated data
     const {
       department_agency,
       contact_person_name,
@@ -261,11 +272,7 @@ export async function createBooking(req, res) {
       status = 'pending',
       booked_via_link = false,
       booking_link_token,
-    } = req.body;
-
-    if (!department_agency || !contact_person_name || !contact_person_email || !contact_person_phone || !start_date || !end_date || !num_participants) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
+    } = validation.data;
 
     // Convert ISO dates to MySQL datetime format
     const formatDateForMySQL = (isoDate) => {
@@ -279,7 +286,7 @@ export async function createBooking(req, res) {
         id, department_agency, contact_person_name, contact_person_email, contact_person_phone,
         start_date, end_date, num_participants, needs_accommodation, needs_food, needs_training_hall,
         number_of_halls, purpose, financial_year, status, booked_via_link
-      ) VALUES (UUID_TO_BIN(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id, department_agency, contact_person_name, contact_person_email, contact_person_phone,
         formatDateForMySQL(start_date), formatDateForMySQL(end_date), num_participants, needs_accommodation, needs_food, needs_training_hall,
@@ -364,7 +371,7 @@ export async function updateBooking(req, res) {
       }
       return updates[f];
     });
-    await pool.query(`UPDATE bookings SET ${setParts} WHERE id = UUID_TO_BIN(?)`, [...values, id]);
+    await pool.query(`UPDATE bookings SET ${setParts} WHERE id = ?`, [...values, id]);
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -376,7 +383,7 @@ export async function updateBooking(req, res) {
 export async function deleteBooking(req, res) {
   try {
     const { id } = req.params;
-    await pool.query('DELETE FROM bookings WHERE id = UUID_TO_BIN(?)', [id]);
+    await pool.query('DELETE FROM bookings WHERE id = ?', [id]);
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);

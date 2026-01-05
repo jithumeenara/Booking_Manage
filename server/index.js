@@ -1,5 +1,6 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -8,10 +9,11 @@ import hpp from 'hpp';
 import { initAuth, signup, login, logout, me, deleteUser } from './auth.js';
 import { getBookings, getBooking, createBooking, updateBooking, deleteBooking } from './bookings.js';
 import { getBookingLink, getAllBookingLinks, createBookingLink, deleteBookingLink, sendBookingLinkEmail } from './booking_links.js';
-import { getUsers, updateUserRole, updateUserPhoto, resetUserPassword } from './users.js';
+import { getUsers, updateUserRole, updateUserPhoto, resetUserPassword, updateUserProfile } from './users.js';
 import { getEmailConfig, saveEmailConfig, testEmailConfig } from './email_config.js';
 import { getTelegramConfig, saveTelegramConfig, testTelegramConfig, sendUpcomingProgrammes, sendPendingBills, sendReadyForBilling } from './telegram.js';
 import { getUserPermissions, updateUserPermissions, getAllUsersWithPermissions } from './permissions.js';
+import { getFinancialYears, createFinancialYear, setActiveFinancialYear, deleteFinancialYear } from './financial_years.js';
 import { pool, ensureSchema } from './db.js';
 
 const app = express();
@@ -39,6 +41,7 @@ app.use(cookieParser());
 
 // Sanitize inputs
 app.use(xss());
+app.use(compression());
 
 // Prevent HTTP Parameter Pollution
 app.use(hpp());
@@ -172,6 +175,7 @@ app.delete('/api/booking-links/:id', deleteBookingLink);
 
 // Users routes
 app.get('/api/users', getUsers);
+app.put('/api/users/:id', updateUserProfile);
 app.put('/api/users/:id/role', updateUserRole);
 app.put('/api/users/:id/photo', updateUserPhoto);
 app.put('/api/users/:id/password', resetUserPassword);
@@ -194,6 +198,12 @@ app.post('/api/telegram/send-ready-billing', sendReadyForBilling);
 app.get('/api/users/:userId/permissions', getUserPermissions);
 app.put('/api/users/:userId/permissions', updateUserPermissions);
 app.get('/api/users-with-permissions', getAllUsersWithPermissions);
+
+// Financial Years routes
+app.get('/api/financial-years', getFinancialYears);
+app.post('/api/financial-years', createFinancialYear);
+app.put('/api/financial-years/:id/activate', setActiveFinancialYear);
+app.delete('/api/financial-years/:id', deleteFinancialYear);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
