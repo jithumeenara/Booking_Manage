@@ -84,6 +84,8 @@ function createTransporterFromConfig(cfg) {
       user: cfg.smtp_user,
       pass: cfg.smtp_password,
     },
+    // Force IPv4 to avoid IPv6 issues on some cloud providers
+    family: 4,
   });
 }
 
