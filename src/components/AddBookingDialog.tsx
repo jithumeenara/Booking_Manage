@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Users, Mail, Phone, Building } from "lucide-react";
+import { Calendar as CalendarIcon, Users, Phone, Building } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -107,17 +107,17 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
 
       const res = booking
         ? await fetch(`/api/bookings/${booking.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(bookingData),
-          })
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(bookingData),
+        })
         : await fetch('/api/bookings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(bookingData),
-          });
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(bookingData),
+        });
 
       if (!res.ok) {
         const data = await res.json();
@@ -250,7 +250,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
                 type="number"
                 min="1"
                 value={numParticipants}
-                onChange={(e) => setNumParticipants(parseInt(e.target.value) || 1)}
+                onChange={(e) => setNumParticipants(Number.parseInt(e.target.value, 10) || 1)}
                 className="pl-9"
                 required
               />
@@ -281,7 +281,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
                   Accommodation
                 </label>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="food"
@@ -292,7 +292,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
                   Food Service
                 </label>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="trainingHall"
@@ -313,7 +313,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
                     min="1"
                     max="5"
                     value={numberOfHalls}
-                    onChange={(e) => setNumberOfHalls(parseInt(e.target.value) || 1)}
+                    onChange={(e) => setNumberOfHalls(Number.parseInt(e.target.value, 10) || 1)}
                     required
                   />
                   <p className="text-xs text-muted-foreground">Available: 4 halls (60 capacity each) + 1 hall (60+ capacity)</p>

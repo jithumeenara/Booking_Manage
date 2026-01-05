@@ -1,4 +1,4 @@
-import { Plus, Settings, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, User, Phone, Shield, Cog } from "lucide-react";
+import { Plus, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, Phone, Shield, Cog } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -17,12 +17,12 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+
 import { toast } from "sonner";
 import acstiLogo from "@/assets/acsti-logo.png";
 
 interface AppSidebarProps {
-  onAddBooking?: () => void;
+  readonly onAddBooking?: () => void;
 }
 
 interface UserProfile {
@@ -204,8 +204,8 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
                   </div>
                   <div className="mt-2 pt-2 border-t border-sidebar-border/30">
                     <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md ${userProfile.role === 'admin'
-                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                        : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
                       }`}>
                       <Shield className="h-3 w-3" />
                       {userProfile.role === 'admin' ? 'Administrator' : 'User'}

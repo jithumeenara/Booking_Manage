@@ -28,7 +28,9 @@ const ReportGeneration = () => {
   const [toDate, setToDate] = useState<Date | undefined>();
   const [pendingPaymentOnly, setPendingPaymentOnly] = useState(false);
   const [printUpcoming, setPrintUpcoming] = useState(true);
+  const [printRunning, setPrintRunning] = useState(true);
   const [printCompleted, setPrintCompleted] = useState(true);
+  const [printAll, setPrintAll] = useState(false);
   const [activeTab, setActiveTab] = useState("view");
 
   useEffect(() => {
@@ -82,7 +84,9 @@ const ReportGeneration = () => {
     setToDate(undefined);
     setPendingPaymentOnly(false);
     setPrintUpcoming(true);
+    setPrintRunning(true);
     setPrintCompleted(true);
+    setPrintAll(false);
   };
 
   const handleTabChange = (value: string) => {
@@ -123,7 +127,7 @@ const ReportGeneration = () => {
   // Calculate total revenue from payment_completed bookings only
   const totalRevenue = calculateRevenue(filteredBookings);
   const totalParticipants = filteredBookings.reduce((sum, b) => sum + b.num_participants, 0);
-  
+
   // Calculate pending payment amount (payment_pending status only)
   const pendingPaymentAmount = filteredBookings
     .filter(b => b.status === 'payment_pending')
@@ -144,7 +148,7 @@ const ReportGeneration = () => {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-gradient-to-br from-background via-background to-secondary/5">
         <AppSidebar />
-        
+
         <SidebarInset>
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
             <SidebarTrigger className="md:hidden" />
@@ -173,175 +177,175 @@ const ReportGeneration = () => {
               <TabsContent value="view" className="space-y-6">
                 {/* Filters */}
                 <div className="flex flex-wrap gap-3 p-4 bg-card rounded-lg border border-border/50">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filters:</span>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Filters:</span>
+                  </div>
 
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-              <Select value={selectedFinancialYear} onValueChange={setSelectedFinancialYear}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select FY" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All FY</SelectItem>
-                  {financialYears.map(fy => (
-                    <SelectItem key={fy} value={fy!}>{fy}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <Select value={selectedFinancialYear} onValueChange={setSelectedFinancialYear}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select FY" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All FY</SelectItem>
+                      {financialYears.map(fy => (
+                        <SelectItem key={fy} value={fy!}>{fy}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-              {/* Month Filter */}
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Months</SelectItem>
-                  <SelectItem value="0">January</SelectItem>
-                  <SelectItem value="1">February</SelectItem>
-                  <SelectItem value="2">March</SelectItem>
-                  <SelectItem value="3">April</SelectItem>
-                  <SelectItem value="4">May</SelectItem>
-                  <SelectItem value="5">June</SelectItem>
-                  <SelectItem value="6">July</SelectItem>
-                  <SelectItem value="7">August</SelectItem>
-                  <SelectItem value="8">September</SelectItem>
-                  <SelectItem value="9">October</SelectItem>
-                  <SelectItem value="10">November</SelectItem>
-                  <SelectItem value="11">December</SelectItem>
-                </SelectContent>
-              </Select>
+                  {/* Month Filter */}
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Months</SelectItem>
+                      <SelectItem value="0">January</SelectItem>
+                      <SelectItem value="1">February</SelectItem>
+                      <SelectItem value="2">March</SelectItem>
+                      <SelectItem value="3">April</SelectItem>
+                      <SelectItem value="4">May</SelectItem>
+                      <SelectItem value="5">June</SelectItem>
+                      <SelectItem value="6">July</SelectItem>
+                      <SelectItem value="7">August</SelectItem>
+                      <SelectItem value="8">September</SelectItem>
+                      <SelectItem value="9">October</SelectItem>
+                      <SelectItem value="10">November</SelectItem>
+                      <SelectItem value="11">December</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-              {/* From Date */}
-              <Popover>
-                <PopoverTrigger asChild>
+                  {/* From Date */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[180px] justify-start text-left font-normal",
+                          !fromDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fromDate ? format(fromDate, "PPP") : "From date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={fromDate}
+                        onSelect={setFromDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* To Date */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[180px] justify-start text-left font-normal",
+                          !toDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {toDate ? format(toDate, "PPP") : "To date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={toDate}
+                        onSelect={setToDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Pending Payment Filter */}
                   <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[180px] justify-start text-left font-normal",
-                      !fromDate && "text-muted-foreground"
-                    )}
+                    variant={pendingPaymentOnly ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPendingPaymentOnly(!pendingPaymentOnly)}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {fromDate ? format(fromDate, "PPP") : "From date"}
+                    {pendingPaymentOnly ? "✓ " : ""}Pending Payment
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={fromDate}
-                    onSelect={setFromDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
 
-              {/* To Date */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[180px] justify-start text-left font-normal",
-                      !toDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {toDate ? format(toDate, "PPP") : "To date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={toDate}
-                    onSelect={setToDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                  {(selectedDepartment !== "all" || selectedFinancialYear !== "all" || selectedMonth !== "all" || fromDate || toDate || pendingPaymentOnly) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedDepartment("all");
+                        setSelectedFinancialYear("all");
+                        setSelectedMonth("all");
+                        setFromDate(undefined);
+                        setToDate(undefined);
+                        setPendingPaymentOnly(false);
+                      }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
 
-              {/* Pending Payment Filter */}
-              <Button
-                variant={pendingPaymentOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPendingPaymentOnly(!pendingPaymentOnly)}
-              >
-                {pendingPaymentOnly ? "✓ " : ""}Pending Payment
-              </Button>
-
-              {(selectedDepartment !== "all" || selectedFinancialYear !== "all" || selectedMonth !== "all" || fromDate || toDate || pendingPaymentOnly) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedDepartment("all");
-                    setSelectedFinancialYear("all");
-                    setSelectedMonth("all");
-                    setFromDate(undefined);
-                    setToDate(undefined);
-                    setPendingPaymentOnly(false);
-                  }}
-                >
-                  Clear filters
-                </Button>
-              )}
-            </div>
-
-            {/* Summary Cards - Black Text for Readability */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Total Bookings</p>
-                  <div className="p-2.5 rounded-xl bg-blue-500 shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <CalendarDays className="h-5 w-5 text-white" />
+                {/* Summary Cards - Black Text for Readability */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Total Bookings</p>
+                      <div className="p-2.5 rounded-xl bg-blue-500 shadow-md group-hover:scale-110 transition-transform duration-300">
+                        <CalendarDays className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-gray-900">{filteredBookings.length}</h3>
+                    <p className="text-xs text-gray-600 mt-1">Active reservations</p>
+                  </div>
+                  <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Total Participants</p>
+                      <div className="p-2.5 rounded-xl bg-purple-500 shadow-md group-hover:scale-110 transition-transform duration-300">
+                        <Users className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-gray-900">{totalParticipants}</h3>
+                    <p className="text-xs text-gray-600 mt-1">Across all bookings</p>
+                  </div>
+                  <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Pending Payment</p>
+                      <div className="p-2.5 rounded-xl bg-orange-500 shadow-md group-hover:scale-110 transition-transform duration-300">
+                        <IndianRupee className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-gray-900">{formatCurrency(pendingPaymentAmount)}</h3>
+                    <p className="text-xs text-gray-600 mt-1">Payment pending status</p>
+                  </div>
+                  <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Total Revenue</p>
+                      <div className="p-2.5 rounded-xl bg-green-600 shadow-md group-hover:scale-110 transition-transform duration-300">
+                        <IndianRupee className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</h3>
+                    <p className="text-xs text-gray-600 mt-1">Payment completed only</p>
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900">{filteredBookings.length}</h3>
-                <p className="text-xs text-gray-600 mt-1">Active reservations</p>
-              </div>
-              <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Total Participants</p>
-                  <div className="p-2.5 rounded-xl bg-purple-500 shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <h3 className="text-3xl font-bold text-gray-900">{totalParticipants}</h3>
-                <p className="text-xs text-gray-600 mt-1">Across all bookings</p>
-              </div>
-              <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Pending Payment</p>
-                  <div className="p-2.5 rounded-xl bg-orange-500 shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <IndianRupee className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <h3 className="text-3xl font-bold text-gray-900">{formatCurrency(pendingPaymentAmount)}</h3>
-                <p className="text-xs text-gray-600 mt-1">Payment pending status</p>
-              </div>
-              <div className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Total Revenue</p>
-                  <div className="p-2.5 rounded-xl bg-green-600 shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <IndianRupee className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <h3 className="text-3xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</h3>
-                <p className="text-xs text-gray-600 mt-1">Payment completed only</p>
-              </div>
-            </div>
 
                 {/* Table */}
                 <div className="bg-card rounded-lg border border-border/50 overflow-hidden">
@@ -370,12 +374,11 @@ const ReportGeneration = () => {
                           </TableCell>
                           <TableCell>{booking.num_participants}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              booking.status === 'payment_completed' ? 'bg-green-100 text-green-800' :
+                            <span className={`px-2 py-1 rounded text-xs ${booking.status === 'payment_completed' ? 'bg-green-100 text-green-800' :
                               booking.status === 'payment_pending' ? 'bg-red-100 text-red-800' :
-                              booking.status === 'complete' ? 'bg-blue-100 text-blue-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
+                                booking.status === 'complete' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }`}>
                               {booking.status || 'pending'}
                             </span>
                           </TableCell>
@@ -389,26 +392,57 @@ const ReportGeneration = () => {
               </TabsContent>
 
               <TabsContent value="print" className="mt-6 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="print-upcoming"
-                      checked={printUpcoming}
-                      onCheckedChange={(checked) => setPrintUpcoming(checked as boolean)}
-                    />
-                    <Label htmlFor="print-upcoming">Upcoming Programmes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="print-completed"
-                      checked={printCompleted}
-                      onCheckedChange={(checked) => setPrintCompleted(checked as boolean)}
-                    />
-                    <Label htmlFor="print-completed">Completed Programmes</Label>
-                  </div>
+                <div className="bg-card p-6 rounded-lg border border-border/50">
+                  <h3 className="text-lg font-semibold mb-4">Select Report Section</h3>
+                  <Select
+                    value={
+                      printAll ? "all" :
+                        printUpcoming && printRunning && printCompleted ? "all" :
+                          printUpcoming && !printRunning && !printCompleted ? "upcoming" :
+                            !printUpcoming && printRunning && !printCompleted ? "running" :
+                              !printUpcoming && !printRunning && printCompleted ? "completed" :
+                                "custom"
+                    }
+                    onValueChange={(value) => {
+                      if (value === "all") {
+                        setPrintAll(true);
+                        setPrintUpcoming(true);
+                        setPrintRunning(true);
+                        setPrintCompleted(true);
+                      } else if (value === "upcoming") {
+                        setPrintAll(false);
+                        setPrintUpcoming(true);
+                        setPrintRunning(false);
+                        setPrintCompleted(false);
+                      } else if (value === "running") {
+                        setPrintAll(false);
+                        setPrintUpcoming(false);
+                        setPrintRunning(true);
+                        setPrintCompleted(false);
+                      } else if (value === "completed") {
+                        setPrintAll(false);
+                        setPrintUpcoming(false);
+                        setPrintRunning(false);
+                        setPrintCompleted(true);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full md:w-[400px]">
+                      <SelectValue placeholder="Select report section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upcoming">Upcoming Programmes</SelectItem>
+                      <SelectItem value="running">Current Running Programme</SelectItem>
+                      <SelectItem value="completed">Completed Programmes</SelectItem>
+                      <SelectItem value="all">All Programme</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    Choose which section to display in the printable report
+                  </p>
                 </div>
 
-                <PrintReport 
+                <PrintReport
                   bookings={filteredBookings}
                   selectedDepartment={selectedDepartment}
                   selectedFinancialYear={selectedFinancialYear}
@@ -417,7 +451,9 @@ const ReportGeneration = () => {
                   toDate={toDate}
                   pendingPaymentOnly={pendingPaymentOnly}
                   showUpcoming={printUpcoming}
+                  showRunning={printRunning}
                   showCompleted={printCompleted}
+                  showAll={printAll}
                 />
               </TabsContent>
             </Tabs>

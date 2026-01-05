@@ -3,8 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 
 interface ProtectedRouteProps {
-  children: ReactNode;
-  requiredPermission: string;
+  readonly children: ReactNode;
+  readonly requiredPermission: string;
 }
 
 export function ProtectedRoute({ children, requiredPermission }: ProtectedRouteProps) {
