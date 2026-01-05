@@ -10,7 +10,7 @@ async function createTransporterFromConfig() {
   if (!rows.length) {
     throw new Error('Email configuration not found');
   }
-  
+
   const cfg = rows[0];
   const sec = String(cfg.security || 'auto').toLowerCase();
   const port = Number(cfg.smtp_port) || 587;
@@ -22,10 +22,8 @@ async function createTransporterFromConfig() {
   if (sec === 'ssl') {
     secure = true;
   } else if (sec === 'tls' || sec === 'starttls') {
-    secure = false;
     requireTLS = true;
   } else if (sec === 'none') {
-    secure = false;
     ignoreTLS = true;
   } else if (sec === 'auto') {
     secure = port === 465;
@@ -51,17 +49,17 @@ async function createTransporterFromConfig() {
 async function sendBookingConfirmationEmail(bookingDetails) {
   try {
     const { transporter, config } = await createTransporterFromConfig();
-    
+
     const fromName = config.from_name || 'ACSTI Kerala';
     const fromHeader = config.from_email ? `${fromName} <${config.from_email}>` : config.smtp_user;
-    
+
     // Format dates
     const formatDate = (dateStr) => {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('en-IN', { 
-        day: '2-digit', 
-        month: 'short', 
-        year: 'numeric' 
+      return date.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
       });
     };
 
@@ -127,19 +125,19 @@ async function sendBookingConfirmationEmail(bookingDetails) {
           
           <div style="margin-bottom: 20px;">
             <div style="display: inline-block; margin: 5px 10px 5px 0;">
-              ${bookingDetails.needs_accommodation ? 
-                '<span style="background-color: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✓ Accommodation</span>' : 
-                '<span style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✗ Accommodation</span>'}
+              ${bookingDetails.needs_accommodation ?
+        '<span style="background-color: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✓ Accommodation</span>' :
+        '<span style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✗ Accommodation</span>'}
             </div>
             <div style="display: inline-block; margin: 5px 10px 5px 0;">
-              ${bookingDetails.needs_food ? 
-                '<span style="background-color: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✓ Food</span>' : 
-                '<span style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✗ Food</span>'}
+              ${bookingDetails.needs_food ?
+        '<span style="background-color: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✓ Food</span>' :
+        '<span style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✗ Food</span>'}
             </div>
             <div style="display: inline-block; margin: 5px 10px 5px 0;">
-              ${bookingDetails.needs_training_hall ? 
-                '<span style="background-color: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✓ Training Hall (${bookingDetails.number_of_halls || 1})</span>' : 
-                '<span style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✗ Training Hall</span>'}
+              ${bookingDetails.needs_training_hall ?
+        '<span style="background-color: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✓ Training Hall (${bookingDetails.number_of_halls || 1})</span>' :
+        '<span style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; border-radius: 4px; font-size: 14px;">✗ Training Hall</span>'}
             </div>
           </div>
 
@@ -185,7 +183,9 @@ BOOKING DETAILS:
 FACILITIES REQUESTED:
 - Accommodation: ${bookingDetails.needs_accommodation ? 'Yes' : 'No'}
 - Food: ${bookingDetails.needs_food ? 'Yes' : 'No'}
-- Training Hall: ${bookingDetails.needs_training_hall ? `Yes (${bookingDetails.number_of_halls || 1} hall${bookingDetails.number_of_halls > 1 ? 's' : ''})` : 'No'}
+- Training Hall: ${bookingDetails.needs_training_hall ?
+        `Yes (${bookingDetails.number_of_halls || 1} hall${(bookingDetails.number_of_halls || 1) > 1 ? 's' : ''})` :
+        'No'}
 
 ${bookingDetails.purpose ? `PURPOSE:\n${bookingDetails.purpose}\n\n` : ''}
 📌 IMPORTANT: Your booking status is currently Pending. You will receive a notification once it is reviewed and approved by the ACSTI team.
@@ -281,7 +281,7 @@ export async function createBooking(req, res) {
         number_of_halls, purpose, financial_year, status, booked_via_link
       ]
     );
-    
+
     // Send confirmation email if booked via link
     if (booked_via_link) {
       // Send email asynchronously (don't block the response)
@@ -302,7 +302,7 @@ export async function createBooking(req, res) {
       }).catch(err => {
         console.error('Async confirmation email error:', err);
       });
-      
+
       // Send Telegram notification for link booking
       notifyLinkBooking({
         department_agency,
@@ -314,7 +314,7 @@ export async function createBooking(req, res) {
       }).catch(err => {
         console.error('Telegram notification error:', err);
       });
-      
+
       // Deactivate the booking link after successful booking
       if (booking_link_token) {
         deactivateBookingLinkByToken(booking_link_token).catch(err => {
@@ -322,7 +322,7 @@ export async function createBooking(req, res) {
         });
       }
     }
-    
+
     return res.status(201).json({ id, ok: true });
   } catch (e) {
     console.error('Error creating booking:', e);
@@ -335,26 +335,26 @@ export async function updateBooking(req, res) {
   try {
     const { id } = req.params;
     const updates = req.body;
-    const allowed = [
+    const allowed = new Set([
       'department_agency', 'contact_person_name', 'contact_person_email', 'contact_person_phone',
       'start_date', 'end_date', 'num_participants', 'needs_accommodation', 'needs_food',
       'needs_training_hall', 'number_of_halls', 'purpose', 'status', 'total_bill_amount',
       'completed_at', 'financial_year', 'bill_no', 'billed_date', 'num_of_bills'
-    ];
-    const fields = Object.keys(updates).filter(k => allowed.includes(k));
+    ]);
+    const fields = Object.keys(updates).filter(k => allowed.has(k));
     if (!fields.length) return res.status(400).json({ error: 'No valid fields to update' });
-    
+
     // Convert ISO dates to MySQL datetime format
     const formatDateForMySQL = (isoDate) => {
       const date = new Date(isoDate);
       return date.toISOString().slice(0, 19).replace('T', ' ');
     };
-    
-    const dateFields = ['start_date', 'end_date', 'completed_at', 'billed_date'];
+
+    const dateFields = new Set(['start_date', 'end_date', 'completed_at', 'billed_date']);
     const setParts = fields.map(f => `${f} = ?`).join(', ');
     const values = fields.map(f => {
       // Convert date fields to MySQL format
-      if (dateFields.includes(f) && updates[f]) {
+      if (dateFields.has(f) && updates[f]) {
         return formatDateForMySQL(updates[f]);
       }
       return updates[f];

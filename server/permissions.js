@@ -19,7 +19,6 @@ export async function getUserPermissions(req, res) {
         const { userId } = req.params;
 
         // Check if user is admin or requesting their own permissions
-        const requestingUser = req.user; // Assuming middleware adds user to req
 
         const [user] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
         if (!user.length) {

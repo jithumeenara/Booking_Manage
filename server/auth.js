@@ -40,6 +40,15 @@ export async function signup(req, res) {
     const token = req.cookies?.[COOKIE_NAME];
     if (!token) {
       finalRole = 'user'; // Public signups are always 'user' role
+    } else if (role === 'admin') {
+      // Token exists, verify it for admin role creation
+      try {
+        jwt.verify(token, JWT_SECRET);
+        // Token is valid, keep the admin role
+      } catch {
+        // Invalid token, force user role
+        finalRole = 'user';
+      }
     }
 
     const id = uuidv4();
@@ -132,6 +141,7 @@ export async function deleteUser(req, res) {
       const payload = jwt.verify(token, JWT_SECRET);
       requesterId = payload.sub;
     } catch (e) {
+      console.error('JWT verification error:', e);
       return res.status(401).json({ error: 'Invalid token' });
     }
 
