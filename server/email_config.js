@@ -86,6 +86,10 @@ function createTransporterFromConfig(cfg) {
     },
     // Force IPv4 to avoid IPv6 issues on some cloud providers
     family: 4,
+    // Add timeouts to fail fast if blocked
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000,    // 5 seconds
+    socketTimeout: 10000,     // 10 seconds
   });
 }
 
