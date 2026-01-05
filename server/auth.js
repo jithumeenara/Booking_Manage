@@ -25,30 +25,30 @@ export async function signup(req, res) {
     const [rows] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (rows.length) return res.status(409).json({ error: 'Email already registered' });
 
-    // Check if trying to create admin role
-    let finalRole = role;
-    if (role === 'admin') {
-      // Count existing admins
-      const [adminCount] = await pool.query('SELECT COUNT(*) as count FROM users WHERE role = ?', ['admin']);
-      if (adminCount[0].count >= 2) {
-        return res.status(403).json({ error: 'Maximum number of administrators (2) has been reached. Contact an existing administrator.' });
-      }
-    }
-
-    // Force 'user' role for public signup (no authentication check means public signup)
-    // Only authenticated admins can create other admins
+    // Determine final role based on request and authentication
+    let finalRole;
     const token = req.cookies?.[COOKIE_NAME];
+
+    // If no token, always assign 'user' role (public signup)
     if (!token) {
-      finalRole = 'user'; // Public signups are always 'user' role
+      finalRole = 'user';
     } else if (role === 'admin') {
-      // Token exists, verify it for admin role creation
+      // Admin role requested with token - verify authenticity
       try {
         jwt.verify(token, JWT_SECRET);
-        // Token is valid, keep the admin role
+        // Token is valid, check admin count limit
+        const [adminCount] = await pool.query('SELECT COUNT(*) as count FROM users WHERE role = ?', ['admin']);
+        if (adminCount[0].count >= 2) {
+          return res.status(403).json({ error: 'Maximum number of administrators (2) has been reached. Contact an existing administrator.' });
+        }
+        finalRole = 'admin'; // Assign admin role
       } catch {
         // Invalid token, force user role
         finalRole = 'user';
       }
+    } else {
+      // Regular user role requested
+      finalRole = 'user';
     }
 
     const id = uuidv4();

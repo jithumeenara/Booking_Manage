@@ -43,7 +43,7 @@ export const PrintReport = ({
   }, [user]);
 
   const handlePrint = () => {
-    window.print();
+    globalThis.print();
   };
 
   const today = new Date();

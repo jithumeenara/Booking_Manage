@@ -163,6 +163,13 @@ async function sendBookingConfirmationEmail(bookingDetails) {
       </div>
     `;
 
+    // Prepare training hall text (extract nested ternary for clarity)
+    const hallCount = bookingDetails.number_of_halls || 1;
+    const hallText = hallCount > 1 ? 's' : '';
+    const trainingHallInfo = bookingDetails.needs_training_hall ?
+      `Yes (${hallCount} hall${hallText})` :
+      'No';
+
     const textContent = `
 ACSTI Kerala - Outside Programme Booking Confirmation
 
@@ -183,9 +190,7 @@ BOOKING DETAILS:
 FACILITIES REQUESTED:
 - Accommodation: ${bookingDetails.needs_accommodation ? 'Yes' : 'No'}
 - Food: ${bookingDetails.needs_food ? 'Yes' : 'No'}
-- Training Hall: ${bookingDetails.needs_training_hall ?
-        `Yes (${bookingDetails.number_of_halls || 1} hall${(bookingDetails.number_of_halls || 1) > 1 ? 's' : ''})` :
-        'No'}
+- Training Hall: ${trainingHallInfo}
 
 ${bookingDetails.purpose ? `PURPOSE:\n${bookingDetails.purpose}\n\n` : ''}
 📌 IMPORTANT: Your booking status is currently Pending. You will receive a notification once it is reviewed and approved by the ACSTI team.
