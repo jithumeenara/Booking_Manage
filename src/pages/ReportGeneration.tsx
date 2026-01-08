@@ -15,8 +15,30 @@ import { Download, Filter, Calendar as CalendarIcon, CalendarDays, Users, Indian
 import { getCurrentFinancialYear, cn } from "@/lib/utils";
 import { PrintReport } from "@/components/PrintReport";
 import { formatCurrency, calculateRevenue } from "@/lib/formatCurrency";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+
+// Helper function to get status class name
+function getStatusClassName(status: string | undefined): string {
+  if (status === 'payment_completed') return 'bg-green-100 text-green-800';
+  if (status === 'payment_pending') return 'bg-red-100 text-red-800';
+  if (status === 'complete') return 'bg-blue-100 text-blue-800';
+  return 'bg-gray-100 text-gray-800';
+}
+
+// Helper function to get print section value
+function getPrintSectionValue(
+  printAll: boolean,
+  printUpcoming: boolean,
+  printRunning: boolean,
+  printCompleted: boolean
+): string {
+  if (printAll) return "all";
+  if (printUpcoming && printRunning && printCompleted) return "all";
+  if (printUpcoming && !printRunning && !printCompleted) return "upcoming";
+  if (!printUpcoming && printRunning && !printCompleted) return "running";
+  if (!printUpcoming && !printRunning && printCompleted) return "completed";
+  return "custom";
+}
+
 
 const ReportGeneration = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -62,7 +84,7 @@ const ReportGeneration = () => {
     if (selectedFinancialYear !== "all" && booking.financial_year !== selectedFinancialYear) return false;
     if (selectedMonth !== "all") {
       const bookingMonth = new Date(booking.start_date).getMonth();
-      if (bookingMonth !== parseInt(selectedMonth)) return false;
+      if (bookingMonth !== Number.parseInt(selectedMonth, 10)) return false;
     }
     if (fromDate) {
       const bookingStart = new Date(booking.start_date);
@@ -115,12 +137,12 @@ const ReportGeneration = () => {
       .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
+    const url = globalThis.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `bookings-report-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    window.URL.revokeObjectURL(url);
+    globalThis.URL.revokeObjectURL(url);
     toast.success("Report exported successfully");
   };
 
@@ -201,7 +223,7 @@ const ReportGeneration = () => {
                     <SelectContent>
                       <SelectItem value="all">All FY</SelectItem>
                       {financialYears.map(fy => (
-                        <SelectItem key={fy} value={fy!}>{fy}</SelectItem>
+                        <SelectItem key={fy} value={fy}>{fy}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -374,11 +396,7 @@ const ReportGeneration = () => {
                           </TableCell>
                           <TableCell>{booking.num_participants}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${booking.status === 'payment_completed' ? 'bg-green-100 text-green-800' :
-                              booking.status === 'payment_pending' ? 'bg-red-100 text-red-800' :
-                                booking.status === 'complete' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'
-                              }`}>
+                            <span className={`px-2 py-1 rounded text-xs ${getStatusClassName(booking.status)}`}>
                               {booking.status || 'pending'}
                             </span>
                           </TableCell>
@@ -490,14 +508,7 @@ const ReportGeneration = () => {
 
                   <h3 className="text-lg font-semibold mb-4">Select Report Section</h3>
                   <Select
-                    value={
-                      printAll ? "all" :
-                        printUpcoming && printRunning && printCompleted ? "all" :
-                          printUpcoming && !printRunning && !printCompleted ? "upcoming" :
-                            !printUpcoming && printRunning && !printCompleted ? "running" :
-                              !printUpcoming && !printRunning && printCompleted ? "completed" :
-                                "custom"
-                    }
+                    value={getPrintSectionValue(printAll, printUpcoming, printRunning, printCompleted)}
                     onValueChange={(value) => {
                       if (value === "all") {
                         setPrintAll(true);
