@@ -50,13 +50,20 @@ app.use(hpp());
 const allowedOrigins = [
   'http://localhost:8080',
   'http://localhost:3000',
-  'https://acsti-booking.netlify.app' // Add your production frontend domain here
-];
+  'https://acsti-booking.netlify.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+
+    // Allow any Netlify preview/production deploy
+    if (origin.endsWith('.netlify.app')) {
+      return callback(null, true);
+    }
+
     if (allowedOrigins.indexOf(origin) === -1) {
       // Ideally restricted, but for development we can be permissive or warn
       // For a strict production environment, uncomment the error:
@@ -67,6 +74,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 
 // Ensure migrations that the app depends on
 async function ensureMigrations() {
