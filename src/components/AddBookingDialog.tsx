@@ -91,7 +91,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
       const bookingData = {
         department_agency: departmentAgency,
         contact_person_name: contactPersonName,
-        contact_person_email: `${contactPersonName.replace(/\s+/g, '.').toLowerCase()}@placeholder.com`,
+        contact_person_email: `${contactPersonName.split(/\s+/).join('.').toLowerCase()}@placeholder.com`,
         contact_person_phone: contactPersonPhone,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
@@ -99,8 +99,8 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
         needs_accommodation: needsAccommodation,
         needs_food: needsFood,
         needs_training_hall: needsTrainingHall,
-        number_of_halls: needsTrainingHall ? numberOfHalls : null,
-        purpose: purpose || null,
+        number_of_halls: needsTrainingHall ? numberOfHalls : 1,
+        purpose: purpose || undefined,
         financial_year: fy,
         status: booking ? booking.status : 'pending',
       };
