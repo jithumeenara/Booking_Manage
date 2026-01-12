@@ -1,7 +1,7 @@
 import { Plus, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, Phone, Shield, Cog, UserPen } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { usePermissions } from "@/hooks/usePermissions";
+import { usePermissions, User, clearPermissionsCache } from "@/hooks/usePermissions";
 import {
   Sidebar,
   SidebarContent,
@@ -28,22 +28,15 @@ interface AppSidebarProps {
   readonly onAddBooking?: () => void;
 }
 
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  mobile?: string | null;
-  photo?: string | null;
-}
+
 
 export function AppSidebar({ onAddBooking }: AppSidebarProps) {
   const { state } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
   const isCollapsed = state === "collapsed";
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const { canAccessPage, isAdmin } = usePermissions();
+  const { canAccessPage, isAdmin, user } = usePermissions();
+  const userProfile: User | null = user;
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -56,22 +49,12 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
-        if (res.ok) {
-          const user = await res.json();
-          setUserProfile(user);
-        }
-      } catch { }
-    };
-    init();
-  }, []);
+
 
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      clearPermissionsCache();
       toast.success("Logged out successfully");
       navigate("/auth");
     } catch (error) {
@@ -169,12 +152,8 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
 
       toast.success("Profile updated successfully");
 
-      // Refresh user profile
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
-      if (res.ok) {
-        const user = await res.json();
-        setUserProfile(user);
-      }
+      // Refresh page to reload profile data across app
+      window.location.reload();
 
       setShowEditDialog(false);
     } catch (error) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 
 interface Permission {
@@ -5,11 +6,13 @@ interface Permission {
     can_access: boolean;
 }
 
-interface User {
+export interface User {
     id: string;
     email: string;
     name: string;
     role: string;
+    mobile?: string | null;
+    photo?: string | null;
 }
 
 export function usePermissions() {
@@ -17,8 +20,18 @@ export function usePermissions() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Simple memory cache to avoid redundant fetches
+    const cachedUser = (globalThis as any).__USER_CACHE__;
+    const cachedPerms = (globalThis as any).__PERM_CACHE__;
+
     useEffect(() => {
-        loadUserAndPermissions();
+        if (cachedUser && cachedPerms) {
+            setUser(cachedUser);
+            setPermissions(cachedPerms);
+            setLoading(false);
+        } else {
+            loadUserAndPermissions();
+        }
     }, []);
 
     const loadUserAndPermissions = async () => {
@@ -32,6 +45,7 @@ export function usePermissions() {
 
             const userData = await userRes.json();
             setUser(userData);
+            (globalThis as any).__USER_CACHE__ = userData; // Cache user
 
             // Admins have access to everything
             if (userData.role === 'admin') {
@@ -46,6 +60,7 @@ export function usePermissions() {
                     { page: 'user-management', can_access: true },
                 ];
                 setPermissions(allPermissions);
+                (globalThis as any).__PERM_CACHE__ = allPermissions; // Cache perms
                 setLoading(false);
                 return;
             }
@@ -58,6 +73,7 @@ export function usePermissions() {
             if (permRes.ok) {
                 const perms = await permRes.json();
                 setPermissions(perms);
+                (globalThis as any).__PERM_CACHE__ = perms; // Cache perms
             }
         } catch (error) {
             console.error('Failed to load permissions:', error);
@@ -88,3 +104,8 @@ export function usePermissions() {
         isAdmin: user?.role === 'admin',
     };
 }
+
+export const clearPermissionsCache = () => {
+    (globalThis as any).__USER_CACHE__ = null;
+    (globalThis as any).__PERM_CACHE__ = null;
+};

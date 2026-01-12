@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { Download, Filter, Calendar as CalendarIcon, CalendarDays, Users, IndianRupee } from "lucide-react";
 import { getCurrentFinancialYear, cn } from "@/lib/utils";
 import { PrintReport } from "@/components/PrintReport";
+import { PrintFinancialReport } from "@/components/PrintFinancialReport";
 import { formatCurrency, calculateRevenue } from "@/lib/formatCurrency";
 
 // Helper function to get status class name
@@ -54,6 +55,13 @@ const ReportGeneration = () => {
   const [printCompleted, setPrintCompleted] = useState(true);
   const [printAll, setPrintAll] = useState(true);
   const [activeTab, setActiveTab] = useState("view");
+
+  // Financial Report Filters
+  const [finSelectedMonth, setFinSelectedMonth] = useState<string>("all");
+  const [finFromDate, setFinFromDate] = useState<Date | undefined>();
+  const [finToDate, setFinToDate] = useState<Date | undefined>();
+  const [finPaymentStatus, setFinPaymentStatus] = useState<string>("all");
+  const [finSelectedFinancialYear, setFinSelectedFinancialYear] = useState<string>("all");
 
   useEffect(() => {
     fetchBookings();
@@ -111,12 +119,71 @@ const ReportGeneration = () => {
     setPrintAll(false);
   };
 
+  const resetFinancialView = () => {
+    setFinSelectedMonth("all");
+    setFinFromDate(undefined);
+    setFinToDate(undefined);
+    setFinPaymentStatus("all");
+    setFinSelectedFinancialYear("all");
+  };
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === "print") {
       resetPrintView();
     }
+    if (value === "print-financial") {
+      resetFinancialView();
+    }
   };
+
+  // Filter Bookings for Financial Report
+  const filteredFinancialBookings = bookings.filter(booking => {
+    // Only show bookings that have ended (end_date <= today) represents "finished"
+    // Using setHours(0,0,0,0) to compare dates without time
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(booking.end_date);
+    endDate.setHours(0, 0, 0, 0);
+
+    // If end_date is in the future (greater than today), exclude it
+    // If end_date is today, we include it as it "finishes" today? 
+    // User said "after finish end date", usually implies completed.
+    // Let's assume inclusive of today if it ends today.
+    if (endDate > today) return false;
+
+    if (finSelectedFinancialYear !== "all" && booking.financial_year !== finSelectedFinancialYear) return false;
+
+    if (finSelectedMonth !== "all") {
+      // Use billed_date if available, otherwise start_date
+      const dateToCheck = booking.billed_date ? new Date(booking.billed_date) : new Date(booking.start_date);
+      if (dateToCheck.getMonth() !== Number.parseInt(finSelectedMonth, 10)) return false;
+    }
+
+    if (finFromDate) {
+      const dateToCheck = booking.billed_date ? new Date(booking.billed_date) : new Date(booking.start_date);
+      // Compare dates (ignoring time)
+      const d = new Date(dateToCheck); d.setHours(0, 0, 0, 0);
+      const f = new Date(finFromDate); f.setHours(0, 0, 0, 0);
+      if (d < f) return false;
+    }
+
+    if (finToDate) {
+      const dateToCheck = booking.billed_date ? new Date(booking.billed_date) : new Date(booking.start_date);
+      const d = new Date(dateToCheck); d.setHours(0, 0, 0, 0);
+      const t = new Date(finToDate); t.setHours(0, 0, 0, 0);
+      if (d > t) return false;
+    }
+
+    if (finPaymentStatus !== "all") {
+      if (finPaymentStatus === "not_billed" && (booking.status === "pending" || booking.status === "complete")) return true;
+      if (finPaymentStatus === "payment_pending" && booking.status === "payment_pending") return true;
+      if (finPaymentStatus === "payment_completed" && booking.status === "payment_completed") return true;
+      return false;
+    }
+
+    return true;
+  });
 
   const exportToCSV = () => {
     const headers = ['Department', 'Contact Person', 'Phone', 'Start Date', 'End Date', 'Participants', 'Status', 'Bill Amount', 'FY'];
@@ -194,6 +261,7 @@ const ReportGeneration = () => {
               <TabsList>
                 <TabsTrigger value="view">View Report</TabsTrigger>
                 <TabsTrigger value="print">Print Programme Report</TabsTrigger>
+                <TabsTrigger value="print-financial">Print Financial Report</TabsTrigger>
               </TabsList>
 
               <TabsContent value="view" className="space-y-6">
@@ -560,6 +628,137 @@ const ReportGeneration = () => {
                   showRunning={printRunning}
                   showCompleted={printCompleted}
                   showAll={printAll}
+                />
+              </TabsContent>
+
+              <TabsContent value="print-financial" className="mt-6 space-y-6">
+                <div className="bg-card p-6 rounded-lg border border-border/50">
+                  <h3 className="text-lg font-semibold mb-4">Financial Report Filters</h3>
+                  <div className="flex flex-wrap gap-4 mb-6">
+                    {/* FY Filter */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">Financial Year</span>
+                      <Select value={finSelectedFinancialYear} onValueChange={setFinSelectedFinancialYear}>
+                        <SelectTrigger className="w-[150px]">
+                          <SelectValue placeholder="Select FY" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All FY</SelectItem>
+                          {financialYears.map(fy => (
+                            <SelectItem key={fy} value={fy}>{fy}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Month Filter */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">Month</span>
+                      <Select value={finSelectedMonth} onValueChange={setFinSelectedMonth}>
+                        <SelectTrigger className="w-[150px]">
+                          <SelectValue placeholder="Select month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Months</SelectItem>
+                          <SelectItem value="0">January</SelectItem>
+                          <SelectItem value="1">February</SelectItem>
+                          <SelectItem value="2">March</SelectItem>
+                          <SelectItem value="3">April</SelectItem>
+                          <SelectItem value="4">May</SelectItem>
+                          <SelectItem value="5">June</SelectItem>
+                          <SelectItem value="6">July</SelectItem>
+                          <SelectItem value="7">August</SelectItem>
+                          <SelectItem value="8">September</SelectItem>
+                          <SelectItem value="9">October</SelectItem>
+                          <SelectItem value="10">November</SelectItem>
+                          <SelectItem value="11">December</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* From Date */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">From Date</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-[150px] justify-start text-left font-normal",
+                              !finFromDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {finFromDate ? format(finFromDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={finFromDate}
+                            onSelect={setFinFromDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* To Date */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">To Date</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-[150px] justify-start text-left font-normal",
+                              !finToDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {finToDate ? format(finToDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={finToDate}
+                            onSelect={setFinToDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Payment Status */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-gray-700">Payment Status</span>
+                      <Select value={finPaymentStatus} onValueChange={setFinPaymentStatus}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Select Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="payment_pending">Payment Pending</SelectItem>
+                          <SelectItem value="payment_completed">Payment Completed</SelectItem>
+                          <SelectItem value="not_billed">Not Billed/Pending</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-end">
+                      <Button variant="ghost" onClick={resetFinancialView}>Clear</Button>
+                    </div>
+                  </div>
+                </div>
+
+                <PrintFinancialReport
+                  bookings={filteredFinancialBookings}
+                  selectedFinancialYear={finSelectedFinancialYear}
+                  selectedMonth={finSelectedMonth}
+                  fromDate={finFromDate}
+                  toDate={finToDate}
+                  paymentStatus={finPaymentStatus}
                 />
               </TabsContent>
             </Tabs>

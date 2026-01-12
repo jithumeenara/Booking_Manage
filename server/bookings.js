@@ -2,7 +2,7 @@ import { pool } from './db.js';
 import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
 import { deactivateBookingLinkByToken } from './booking_links.js';
-import { notifyLinkBooking } from './telegram.js';
+import { notifyLinkBooking, notifyBillingReady, notifyPaymentReceived } from './telegram.js';
 import { bookingSchema } from './validation.js';
 
 // Helper: create nodemailer transporter from DB config
@@ -347,6 +347,9 @@ export async function updateBooking(req, res) {
   try {
     const { id } = req.params;
     const updates = req.body;
+    console.log('[DEBUG] updateBooking called for ID:', id);
+    console.log('[DEBUG] Updates:', JSON.stringify(updates));
+
     const allowed = new Set([
       'department_agency', 'contact_person_name', 'contact_person_email', 'contact_person_phone',
       'start_date', 'end_date', 'num_participants', 'needs_accommodation', 'needs_food',
@@ -372,7 +375,21 @@ export async function updateBooking(req, res) {
       return updates[f];
     });
 
-    await pool.query(`UPDATE bookings SET ${setParts} WHERE id = ?`, [...values, id]);
+    const [result] = await pool.query(`UPDATE bookings SET ${setParts} WHERE id = ?`, [...values, id]);
+
+    // Check if we need to send a "Payment Received" notification
+    if (updates.status === 'payment_completed' || updates.status === 'complete') {
+      try {
+        // Fetch the updated booking to get full details for the message
+        const [rows] = await pool.query('SELECT * FROM bookings WHERE id = ?', [id]);
+        if (rows.length > 0) {
+          await notifyPaymentReceived(rows[0]);
+        }
+      } catch (err) {
+        console.error('Failed to trigger payment notification:', err);
+      }
+    }
+
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);

@@ -31,7 +31,7 @@ export async function saveTelegramConfig(req, res) {
 
     // Check if config exists
     const [existing] = await pool.query('SELECT id FROM telegram_config LIMIT 1');
-    
+
     if (existing.length > 0) {
       // Update existing
       await pool.query(
@@ -66,9 +66,9 @@ export async function saveTelegramConfig(req, res) {
       sqlMessage: error.sqlMessage,
       stack: error.stack
     });
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to save Telegram configuration',
-      details: error.message 
+      details: error.message
     });
   }
 }
@@ -128,7 +128,7 @@ async function getConfigAndSend(eventType, message) {
     if (rows.length === 0) return;
 
     const config = rows[0];
-    
+
     // Check if this notification type is enabled
     if (eventType === 'link_booking' && !config.notify_on_link_booking) return;
     if (eventType === 'billing_ready' && !config.notify_on_billing_ready) return;
@@ -198,12 +198,60 @@ export async function notifyLogin(userData) {
 
 *User:* ${userData.name} (${userData.email})
 *Role:* ${userData.role === 'admin' ? 'Administrator' : 'User'}
-*Time:* ${new Date().toLocaleString()}
+*Device:* ${userData.device || 'Unknown'}
+*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' })}
 
 A user has logged into the ACSTI Booking System.
   `.trim();
 
   await getConfigAndSend('login', message);
+}
+
+export async function notifyPaymentReceived(bookingData) {
+  try {
+    // 1. Calculate stats (Total Revenue & Pending)
+    const [revenueRows] = await pool.query(
+      'SELECT SUM(total_bill_amount) as total FROM bookings WHERE status = ? OR status = ?',
+      ['payment_completed', 'complete']
+    );
+    const totalRevenue = revenueRows[0].total || 0;
+
+    const [pendingRows] = await pool.query(
+      'SELECT SUM(total_bill_amount) as total FROM bookings WHERE status = ?',
+      ['payment_pending']
+    );
+    const pendingPayment = pendingRows[0].total || 0;
+
+    // 2. Format Message
+    const message = `
+💰 *Payment Received*
+
+*Department:* ${bookingData.department_agency}
+*Bill No:* ${bookingData.bill_no || 'N/A'}
+*Amount:* ₹${(bookingData.total_bill_amount || 0).toLocaleString('en-IN')}
+*Date:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full' })}
+
+📊 *Current Financial Status:*
+*Total Revenue:* ₹${totalRevenue.toLocaleString('en-IN')}
+*Pending Payment:* ₹${pendingPayment.toLocaleString('en-IN')}
+
+Payment has been marked as completed.
+    `.trim();
+
+    // 3. Send Notification (reuse 'billing_ready' config flag for now as user didn't request new toggle)
+    // Actually, it's safer to always send if enabled, or check a general 'enabled' flag if new toggle isn't feasible.
+    // Let's reuse 'notify_on_billing_ready' or just force send if 'enabled' is true. 
+    // Given the strict requirement, I'll bypass the specific flag check and just check 'enabled'.
+
+    const [rows] = await pool.query('SELECT * FROM telegram_config WHERE enabled = TRUE LIMIT 1');
+    if (rows.length === 0) return;
+    const config = rows[0];
+
+    await sendTelegramMessage(config.bot_token, config.chat_id, message);
+
+  } catch (error) {
+    console.error('Error in notifyPaymentReceived:', error);
+  }
 }
 
 // Manual notification: Send Upcoming Programmes

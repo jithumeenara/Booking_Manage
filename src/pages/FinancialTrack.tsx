@@ -413,66 +413,129 @@ const FinancialTrack = () => {
                             </div>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                              <div className="flex items-center gap-2">
-                                <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
-                              </div>
-                              {booking.bill_no && (
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4 text-muted-foreground" />
-                                  <span>Bill: {booking.bill_no}</span>
+                            {editingId === booking.id ? (
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`bill-amount-${booking.id}`}>Total Bill Amount (₹)</Label>
+                                  <Input
+                                    id={`bill-amount-${booking.id}`}
+                                    type="number"
+                                    value={billAmount}
+                                    onChange={(e) => setBillAmount(e.target.value)}
+                                    placeholder="Enter amount"
+                                    min="0"
+                                    step="0.01"
+                                  />
                                 </div>
-                              )}
-                              {booking.billed_date && (
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                                  <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
-                                </div>
-                              )}
-                              {booking.num_of_bills && (
-                                <div className="flex items-center gap-2">
-                                  <Hash className="h-4 w-4 text-muted-foreground" />
-                                  <span>{booking.num_of_bills} bill(s)</span>
-                                </div>
-                              )}
-                            </div>
 
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handleUpdateStatus(booking.id, 'payment_completed')}
-                              >
-                                Mark Payment Completed
-                              </Button>
-                              {isAdmin && (
-                                <>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`bill-no-${booking.id}`}>Bill Number</Label>
+                                  <Input
+                                    id={`bill-no-${booking.id}`}
+                                    type="text"
+                                    value={billNo}
+                                    onChange={(e) => setBillNo(e.target.value)}
+                                    placeholder="Enter bill number"
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`billed-date-${booking.id}`}>Billed Date</Label>
+                                  <Input
+                                    id={`billed-date-${booking.id}`}
+                                    type="date"
+                                    value={billedDate}
+                                    onChange={(e) => setBilledDate(e.target.value)}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`num-bills-${booking.id}`}>Number of Bills</Label>
+                                  <Input
+                                    id={`num-bills-${booking.id}`}
+                                    type="number"
+                                    value={numOfBills}
+                                    onChange={(e) => setNumOfBills(e.target.value)}
+                                    placeholder="1"
+                                    min="1"
+                                  />
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <Button onClick={() => handleUpdateBillAmount(booking.id)} className="w-full sm:w-auto">Save Bill Details</Button>
+                                  <Button variant="outline" onClick={() => {
+                                    setEditingId(null);
+                                    setBillAmount("");
+                                    setBillNo("");
+                                    setBilledDate("");
+                                    setNumOfBills("1");
+                                  }} className="w-full sm:w-auto">Cancel</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
+                                  </div>
+                                  {booking.bill_no && (
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-muted-foreground" />
+                                      <span>Bill: {booking.bill_no}</span>
+                                    </div>
+                                  )}
+                                  {booking.billed_date && (
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                                      <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
+                                    </div>
+                                  )}
+                                  {booking.num_of_bills && (
+                                    <div className="flex items-center gap-2">
+                                      <Hash className="h-4 w-4 text-muted-foreground" />
+                                      <span>{booking.num_of_bills} bill(s)</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-2">
                                   <Button
-                                    variant="outline"
+                                    variant="default"
                                     size="sm"
-                                    onClick={() => {
-                                      setEditingId(booking.id);
-                                      setBillAmount(booking.total_bill_amount?.toString() || "");
-                                      setBillNo(booking.bill_no || "");
-                                      setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
-                                      setNumOfBills(booking.num_of_bills?.toString() || "1");
-                                    }}
+                                    onClick={() => handleUpdateStatus(booking.id, 'payment_completed')}
                                   >
-                                    <Pencil className="h-4 w-4 mr-1" />
-                                    Edit Bill
+                                    Mark Payment Completed
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEdit(booking)}
-                                  >
-                                    <Pencil className="h-4 w-4 mr-1" />
-                                    Edit Booking
-                                  </Button>
-                                </>
-                              )}
-                            </div>
+                                  {isAdmin && (
+                                    <>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditingId(booking.id);
+                                          setBillAmount(booking.total_bill_amount?.toString() || "");
+                                          setBillNo(booking.bill_no || "");
+                                          setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
+                                          setNumOfBills(booking.num_of_bills?.toString() || "1");
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4 mr-1" />
+                                        Edit Bill
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleEdit(booking)}
+                                      >
+                                        <Pencil className="h-4 w-4 mr-1" />
+                                        Edit Booking
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
@@ -512,55 +575,118 @@ const FinancialTrack = () => {
                             </div>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                              <div className="flex items-center gap-2">
-                                <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
+                            {editingId === booking.id ? (
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`bill-amount-${booking.id}`}>Total Bill Amount (₹)</Label>
+                                  <Input
+                                    id={`bill-amount-${booking.id}`}
+                                    type="number"
+                                    value={billAmount}
+                                    onChange={(e) => setBillAmount(e.target.value)}
+                                    placeholder="Enter amount"
+                                    min="0"
+                                    step="0.01"
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`bill-no-${booking.id}`}>Bill Number</Label>
+                                  <Input
+                                    id={`bill-no-${booking.id}`}
+                                    type="text"
+                                    value={billNo}
+                                    onChange={(e) => setBillNo(e.target.value)}
+                                    placeholder="Enter bill number"
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`billed-date-${booking.id}`}>Billed Date</Label>
+                                  <Input
+                                    id={`billed-date-${booking.id}`}
+                                    type="date"
+                                    value={billedDate}
+                                    onChange={(e) => setBilledDate(e.target.value)}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`num-bills-${booking.id}`}>Number of Bills</Label>
+                                  <Input
+                                    id={`num-bills-${booking.id}`}
+                                    type="number"
+                                    value={numOfBills}
+                                    onChange={(e) => setNumOfBills(e.target.value)}
+                                    placeholder="1"
+                                    min="1"
+                                  />
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <Button onClick={() => handleUpdateBillAmount(booking.id)} className="w-full sm:w-auto">Save Bill Details</Button>
+                                  <Button variant="outline" onClick={() => {
+                                    setEditingId(null);
+                                    setBillAmount("");
+                                    setBillNo("");
+                                    setBilledDate("");
+                                    setNumOfBills("1");
+                                  }} className="w-full sm:w-auto">Cancel</Button>
+                                </div>
                               </div>
-                              {booking.bill_no && (
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4 text-muted-foreground" />
-                                  <span>Bill: {booking.bill_no}</span>
+                            ) : (
+                              <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
+                                  </div>
+                                  {booking.bill_no && (
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-muted-foreground" />
+                                      <span>Bill: {booking.bill_no}</span>
+                                    </div>
+                                  )}
+                                  {booking.billed_date && (
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                                      <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
+                                    </div>
+                                  )}
+                                  {booking.num_of_bills && (
+                                    <div className="flex items-center gap-2">
+                                      <Hash className="h-4 w-4 text-muted-foreground" />
+                                      <span>{booking.num_of_bills} bill(s)</span>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                              {booking.billed_date && (
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                                  <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
-                                </div>
-                              )}
-                              {booking.num_of_bills && (
-                                <div className="flex items-center gap-2">
-                                  <Hash className="h-4 w-4 text-muted-foreground" />
-                                  <span>{booking.num_of_bills} bill(s)</span>
-                                </div>
-                              )}
-                            </div>
-                            {isAdmin && (
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingId(booking.id);
-                                    setBillAmount(booking.total_bill_amount?.toString() || "");
-                                    setBillNo(booking.bill_no || "");
-                                    setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
-                                    setNumOfBills(booking.num_of_bills?.toString() || "1");
-                                  }}
-                                >
-                                  <Pencil className="h-4 w-4 mr-1" />
-                                  Edit Bill
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEdit(booking)}
-                                >
-                                  <Pencil className="h-4 w-4 mr-1" />
-                                  Edit Booking
-                                </Button>
-                              </div>
+                                {isAdmin && (
+                                  <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingId(booking.id);
+                                        setBillAmount(booking.total_bill_amount?.toString() || "");
+                                        setBillNo(booking.bill_no || "");
+                                        setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
+                                        setNumOfBills(booking.num_of_bills?.toString() || "1");
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4 mr-1" />
+                                      Edit Bill
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEdit(booking)}
+                                    >
+                                      <Pencil className="h-4 w-4 mr-1" />
+                                      Edit Booking
+                                    </Button>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </CardContent>
                         </Card>

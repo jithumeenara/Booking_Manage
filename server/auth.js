@@ -94,14 +94,19 @@ export async function login(req, res) {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    const token = jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
+    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTIONS, maxAge: 8 * 60 * 60 * 1000 });
 
     // Send Telegram notification for login
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /mobile/i.test(userAgent);
+    const deviceType = isMobile ? 'Mobile' : 'Desktop';
+
     notifyLogin({
       name: user.name || 'Unknown',
       email: user.email,
-      role: user.role
+      role: user.role,
+      device: deviceType
     }).catch(err => {
       console.error('Telegram login notification error:', err);
     });
