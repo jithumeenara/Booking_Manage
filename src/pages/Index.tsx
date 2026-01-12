@@ -55,16 +55,16 @@ const Index = () => {
 
   // Financial years for filter
   const financialYears = Array.from(new Set(bookings.map(b => b.financial_year).filter(Boolean)));
-  
+
   // Filter bookings by financial year
-  const filteredBookings = selectedFinancialYear === "all" 
-    ? bookings 
+  const filteredBookings = selectedFinancialYear === "all"
+    ? bookings
     : bookings.filter(b => b.financial_year === selectedFinancialYear);
 
   // Calculate stats from filtered bookings
   const totalBookings = filteredBookings.length;
   const totalParticipants = filteredBookings.reduce((sum, b) => sum + b.num_participants, 0);
-  
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -77,7 +77,7 @@ const Index = () => {
   });
 
   const paymentPendingBookings = filteredBookings.filter(b => b.status === 'payment_pending');
-  
+
   // Link bookings that are still pending and haven't ended yet, excluding dismissed ones
   const linkBookings = filteredBookings.filter(b => {
     if (!b.booked_via_link || b.status !== 'pending') return false;
@@ -87,14 +87,14 @@ const Index = () => {
     // Only show if end date is in the future (not ready for billing yet)
     return endDate.getTime() > today.getTime();
   });
-  
+
   // Check if any bookings ended today for red notification
   const hasBookingsEndingToday = pendingBillsBookings.some(b => {
     const endDate = new Date(b.end_date);
     endDate.setHours(0, 0, 0, 0);
     return endDate.getTime() === today.getTime();
   });
-  
+
   const totalNotifications = pendingBillsBookings.length + paymentPendingBookings.length + linkBookings.length;
 
   // Auto-open notification dialog on every login if there are notifications
@@ -106,7 +106,7 @@ const Index = () => {
 
   const pendingBillsCount = pendingBillsBookings.length;
   const totalPendingBillAmount = paymentPendingBookings.reduce((sum, b) => sum + (b.total_bill_amount || 0), 0);
-  
+
   // Calculate current accommodation usage (today)
   const accommodationToday = filteredBookings
     .filter(b => {
@@ -117,7 +117,7 @@ const Index = () => {
       return b.needs_accommodation && start <= today && end >= today;
     })
     .reduce((sum, b) => sum + b.num_participants, 0);
-  
+
   // Get next 3 upcoming programmes
   const now = new Date();
   const upcomingNext3 = filteredBookings
@@ -142,7 +142,7 @@ const Index = () => {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-gradient-to-br from-background via-background to-primary/5">
         <AppSidebar onAddBooking={() => setAddBookingDialogOpen(true)} />
-        
+
         <SidebarInset>
           {/* Header */}
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -155,7 +155,7 @@ const Index = () => {
                 </h1>
                 <p className="text-xs text-muted-foreground">ACSTI Kerala • Current FY: {getCurrentFinancialYear()}</p>
               </div>
-              
+
               <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
                 <DialogTrigger asChild>
                   <button className="relative p-2 hover:bg-muted rounded-lg transition-colors">
@@ -171,7 +171,7 @@ const Index = () => {
                   <DialogHeader>
                     <DialogTitle>Notifications</DialogTitle>
                   </DialogHeader>
-                  
+
                   <div className="space-y-6">
                     {/* Link Bookings */}
                     {linkBookings.length > 0 && (
@@ -195,8 +195,8 @@ const Index = () => {
                                     {booking.num_participants} participants
                                   </div>
                                 </div>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   className="bg-green-600 hover:bg-green-700"
                                   onClick={() => {
                                     // Add to dismissed list
@@ -215,7 +215,7 @@ const Index = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Pending Bills */}
                     {pendingBillsBookings.length > 0 && (
                       <div>
@@ -224,10 +224,10 @@ const Index = () => {
                             <FileText className="h-5 w-5 text-yellow-500" />
                             Ready for billing ({pendingBillsBookings.length})
                           </h3>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
-                            onClick={() => navigate('/financial-track')}
+                            onClick={() => navigate('/financial-track', { state: { tab: 'pending-bills' } })}
                           >
                             Go to Financial Track
                           </Button>
@@ -247,7 +247,7 @@ const Index = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Payment Pending */}
                     {paymentPendingBookings.length > 0 && (
                       <div>
@@ -256,10 +256,10 @@ const Index = () => {
                             <IndianRupee className="h-5 w-5 text-red-500" />
                             Payment Pending ({paymentPendingBookings.length})
                           </h3>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
-                            onClick={() => navigate('/financial-track')}
+                            onClick={() => navigate('/financial-track', { state: { tab: 'payment-pending' } })}
                           >
                             Go to Financial Track
                           </Button>
@@ -279,7 +279,7 @@ const Index = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {totalNotifications === 0 && (
                       <div className="text-center py-8 text-muted-foreground">
                         <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -339,6 +339,7 @@ const Index = () => {
                 icon={FileText}
                 description="Awaiting billing"
                 colorVariant="orange"
+                onClick={() => navigate('/financial-track', { state: { tab: 'pending-bills' } })}
               />
               <StatsCard
                 title="Pending Amount"
@@ -346,6 +347,7 @@ const Index = () => {
                 icon={IndianRupee}
                 description="Payment pending"
                 colorVariant="blue"
+                onClick={() => navigate('/financial-track', { state: { tab: 'payment-pending' } })}
               />
             </div>
 

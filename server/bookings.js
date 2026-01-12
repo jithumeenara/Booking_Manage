@@ -371,6 +371,7 @@ export async function updateBooking(req, res) {
       }
       return updates[f];
     });
+
     await pool.query(`UPDATE bookings SET ${setParts} WHERE id = ?`, [...values, id]);
     return res.json({ ok: true });
   } catch (e) {

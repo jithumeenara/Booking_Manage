@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Booking } from "@/components/BookingCard";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -33,6 +34,13 @@ const FinancialTrack = () => {
   const tabsRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state && location.state.tab) {
+      setActiveTab(location.state.tab);
+    }
+  }, [location]);
 
   useEffect(() => {
     fetchCompletedBookings();
@@ -62,9 +70,20 @@ const FinancialTrack = () => {
         return;
       }
       const data = await res.json();
-      const completed = data.filter((b: Booking) => 
-        ['complete', 'payment_completed', 'payment_pending'].includes(b.status)
-      );
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const completed = data.filter((b: Booking) => {
+        const endDate = new Date(b.end_date);
+        endDate.setHours(0, 0, 0, 0);
+
+        // Include if status is payment related OR if matches ready for billing criteria (pending/complete + past end date)
+        const isPaymentRelated = ['payment_completed', 'payment_pending'].includes(b.status);
+        const isReadyForBilling = ['complete', 'pending'].includes(b.status) && endDate.getTime() <= today.getTime();
+
+        return isPaymentRelated || isReadyForBilling;
+      });
       setCompletedBookings(completed || []);
     } catch (err) {
       toast.error("Failed to load completed bookings");
@@ -76,17 +95,17 @@ const FinancialTrack = () => {
   const handleUpdateBillAmount = async (bookingId: string) => {
     const amount = parseFloat(billAmount);
     const bills = parseInt(numOfBills);
-    
+
     if (isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
     if (!billNo.trim()) {
       toast.error("Please enter a bill number");
       return;
     }
-    
+
     if (!billedDate) {
       toast.error("Please select a billed date");
       return;
@@ -115,7 +134,7 @@ const FinancialTrack = () => {
       setBillNo("");
       setBilledDate("");
       setNumOfBills("1");
-      fetchCompletedBookings();
+      await fetchCompletedBookings();
     } catch (err) {
       toast.error("Failed to update bill details");
       console.error(err);
@@ -195,7 +214,7 @@ const FinancialTrack = () => {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-gradient-to-br from-background via-background to-secondary/5">
         <AppSidebar />
-        
+
         <SidebarInset>
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
             <SidebarTrigger className="md:hidden" />
@@ -216,22 +235,22 @@ const FinancialTrack = () => {
               <div className="md:w-64 flex-shrink-0 md:sticky md:top-20">
                 <div className="bg-card rounded-xl border border-border/50 p-2 shadow-sm">
                   <TabsList className="flex flex-col w-full h-auto bg-transparent gap-2 items-stretch">
-                    <TabsTrigger 
-                      value="pending-bills" 
+                    <TabsTrigger
+                      value="pending-bills"
                       className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 hover:bg-muted flex items-center justify-start gap-3 py-4 px-4 w-full"
                     >
                       <FileText className="h-5 w-5" />
                       <span className="text-left flex-1">Ready for Billing</span>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="payment-pending" 
+                    <TabsTrigger
+                      value="payment-pending"
                       className="data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 hover:bg-muted flex items-center justify-start gap-3 py-4 px-4 w-full"
                     >
                       <IndianRupee className="h-5 w-5" />
                       <span className="text-left flex-1">Payment Pending</span>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="payment-completed" 
+                    <TabsTrigger
+                      value="payment-completed"
                       className="data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 hover:bg-muted flex items-center justify-start gap-3 py-4 px-4 w-full"
                     >
                       <Badge className="h-5 w-5" />
@@ -242,195 +261,285 @@ const FinancialTrack = () => {
               </div>
 
               {/* Tab Content Container */}
-              <div 
+              <div
                 ref={tabsRef}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
                 className="flex-1 touch-pan-y"
               >
 
-              {/* Ready for billing Tab */}
-              <TabsContent value="pending-bills" className="space-y-6">
-                {completedBookings.filter(b => b.status === 'complete').length === 0 ? (
-                  <div className="text-center py-16 bg-gradient-to-br from-card to-muted/20 rounded-xl border border-border/50 shadow-lg">
-                    <p className="text-muted-foreground">No bookings ready for billing</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-6">
-                     {completedBookings.filter(b => b.status === 'complete').map((booking) => (
-                      <Card key={booking.id} className="border-l-4 border-l-yellow-400 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-yellow-50/50 dark:to-yellow-950/20">
-                        <CardHeader className="pb-3">
-                          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                            <div className="w-full sm:w-auto">
-                              <CardTitle className="text-lg sm:text-xl bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">
-                                {booking.department_agency}
-                              </CardTitle>
-                              <div className="flex flex-col sm:flex-row gap-3 mt-3 text-sm">
-                                <div className="flex items-center gap-1.5 text-muted-foreground">
-                                  <Calendar className="h-4 w-4 text-yellow-600" />
-                                  <span className="font-medium">{format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}</span>
+                {/* Ready for billing Tab */}
+                <TabsContent value="pending-bills" className="space-y-6">
+                  {completedBookings.filter(b => ['complete', 'pending'].includes(b.status)).length === 0 ? (
+                    <div className="text-center py-16 bg-gradient-to-br from-card to-muted/20 rounded-xl border border-border/50 shadow-lg">
+                      <p className="text-muted-foreground">No bookings ready for billing</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6">
+                      {completedBookings.filter(b => ['complete', 'pending'].includes(b.status)).map((booking) => (
+                        <Card key={booking.id} className="border-l-4 border-l-yellow-400 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-yellow-50/50 dark:to-yellow-950/20">
+                          <CardHeader className="pb-3">
+                            <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                              <div className="w-full sm:w-auto">
+                                <CardTitle className="text-lg sm:text-xl bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">
+                                  {booking.department_agency}
+                                </CardTitle>
+                                <div className="flex flex-col sm:flex-row gap-3 mt-3 text-sm">
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Calendar className="h-4 w-4 text-yellow-600" />
+                                    <span className="font-medium">{format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Users className="h-4 w-4 text-yellow-600" />
+                                    <span className="font-medium">{booking.num_participants} participants</span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-muted-foreground">
-                                  <Users className="h-4 w-4 text-yellow-600" />
-                                  <span className="font-medium">{booking.num_participants} participants</span>
+                              </div>
+                              <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
+                                <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 shadow-md">Ready for billing</Badge>
+                                {booking.financial_year && <Badge variant="outline" className="font-semibold">{booking.financial_year}</Badge>}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {editingId === booking.id ? (
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`bill-amount-${booking.id}`}>Total Bill Amount (₹)</Label>
+                                  <Input
+                                    id={`bill-amount-${booking.id}`}
+                                    type="number"
+                                    value={billAmount}
+                                    onChange={(e) => setBillAmount(e.target.value)}
+                                    placeholder="Enter amount"
+                                    min="0"
+                                    step="0.01"
+                                  />
                                 </div>
-                              </div>
-                            </div>
-                            <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
-                              <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 shadow-md">Ready for billing</Badge>
-                              {booking.financial_year && <Badge variant="outline" className="font-semibold">{booking.financial_year}</Badge>}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {editingId === booking.id ? (
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <Label htmlFor={`bill-amount-${booking.id}`}>Total Bill Amount (₹)</Label>
-                                <Input
-                                  id={`bill-amount-${booking.id}`}
-                                  type="number"
-                                  value={billAmount}
-                                  onChange={(e) => setBillAmount(e.target.value)}
-                                  placeholder="Enter amount"
-                                  min="0"
-                                  step="0.01"
-                                />
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <Label htmlFor={`bill-no-${booking.id}`}>Bill Number</Label>
-                                <Input
-                                  id={`bill-no-${booking.id}`}
-                                  type="text"
-                                  value={billNo}
-                                  onChange={(e) => setBillNo(e.target.value)}
-                                  placeholder="Enter bill number"
-                                />
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <Label htmlFor={`billed-date-${booking.id}`}>Billed Date</Label>
-                                <Input
-                                  id={`billed-date-${booking.id}`}
-                                  type="date"
-                                  value={billedDate}
-                                  onChange={(e) => setBilledDate(e.target.value)}
-                                />
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <Label htmlFor={`num-bills-${booking.id}`}>Number of Bills</Label>
-                                <Input
-                                  id={`num-bills-${booking.id}`}
-                                  type="number"
-                                  value={numOfBills}
-                                  onChange={(e) => setNumOfBills(e.target.value)}
-                                  placeholder="1"
-                                  min="1"
-                                />
-                              </div>
-                              
-                               <div className="flex flex-col sm:flex-row gap-2">
-                                <Button onClick={() => handleUpdateBillAmount(booking.id)} className="w-full sm:w-auto">Save Bill Details</Button>
-                                <Button variant="outline" onClick={() => { 
-                                  setEditingId(null); 
-                                  setBillAmount(""); 
-                                  setBillNo("");
-                                  setBilledDate("");
-                                  setNumOfBills("1");
-                                }} className="w-full sm:w-auto">Cancel</Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <Button variant="outline" size="sm" onClick={() => {
-                              setEditingId(booking.id);
-                              setBillAmount(booking.total_bill_amount?.toString() || "");
-                              setBillNo(booking.bill_no || "");
-                              setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
-                              setNumOfBills(booking.num_of_bills?.toString() || "1");
-                            }}>
-                              Set Bill Details
-                            </Button>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
 
-              {/* Payment Pending Tab */}
-              <TabsContent value="payment-pending" className="space-y-6">
-                {completedBookings.filter(b => b.status === 'payment_pending').length === 0 ? (
-                  <div className="text-center py-16 bg-gradient-to-br from-card to-muted/20 rounded-xl border border-border/50 shadow-lg">
-                    <p className="text-muted-foreground">No pending payments</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-6">
-                     {completedBookings.filter(b => b.status === 'payment_pending').map((booking) => (
-                      <Card key={booking.id} className="border-l-4 border-l-destructive shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-red-50/50 dark:to-red-950/20">
-                        <CardHeader className="pb-3">
-                          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                            <div className="w-full sm:w-auto">
-                              <CardTitle className="text-lg sm:text-xl bg-gradient-to-r from-destructive to-orange-600 bg-clip-text text-transparent">
-                                {booking.department_agency}
-                              </CardTitle>
-                              <div className="flex flex-col sm:flex-row gap-3 mt-3 text-sm">
-                                <div className="flex items-center gap-1.5 text-muted-foreground">
-                                  <Calendar className="h-4 w-4 text-destructive" />
-                                  <span className="font-medium">{format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}</span>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`bill-no-${booking.id}`}>Bill Number</Label>
+                                  <Input
+                                    id={`bill-no-${booking.id}`}
+                                    type="text"
+                                    value={billNo}
+                                    onChange={(e) => setBillNo(e.target.value)}
+                                    placeholder="Enter bill number"
+                                  />
                                 </div>
-                                <div className="flex items-center gap-1.5 text-muted-foreground">
-                                  <Users className="h-4 w-4 text-destructive" />
-                                  <span className="font-medium">{booking.num_participants} participants</span>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`billed-date-${booking.id}`}>Billed Date</Label>
+                                  <Input
+                                    id={`billed-date-${booking.id}`}
+                                    type="date"
+                                    value={billedDate}
+                                    onChange={(e) => setBilledDate(e.target.value)}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`num-bills-${booking.id}`}>Number of Bills</Label>
+                                  <Input
+                                    id={`num-bills-${booking.id}`}
+                                    type="number"
+                                    value={numOfBills}
+                                    onChange={(e) => setNumOfBills(e.target.value)}
+                                    placeholder="1"
+                                    min="1"
+                                  />
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <Button onClick={() => handleUpdateBillAmount(booking.id)} className="w-full sm:w-auto">Save Bill Details</Button>
+                                  <Button variant="outline" onClick={() => {
+                                    setEditingId(null);
+                                    setBillAmount("");
+                                    setBillNo("");
+                                    setBilledDate("");
+                                    setNumOfBills("1");
+                                  }} className="w-full sm:w-auto">Cancel</Button>
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
-                              <Badge variant="destructive" className="shadow-md">Payment Pending</Badge>
-                              {booking.financial_year && <Badge variant="outline" className="font-semibold">{booking.financial_year}</Badge>}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
-                            </div>
-                            {booking.bill_no && (
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span>Bill: {booking.bill_no}</span>
-                              </div>
+                            ) : (
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setEditingId(booking.id);
+                                setBillAmount(booking.total_bill_amount?.toString() || "");
+                                setBillNo(booking.bill_no || "");
+                                setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
+                                setNumOfBills(booking.num_of_bills?.toString() || "1");
+                              }}>
+                                Set Bill Details
+                              </Button>
                             )}
-                            {booking.billed_date && (
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Payment Pending Tab */}
+                <TabsContent value="payment-pending" className="space-y-6">
+                  {completedBookings.filter(b => b.status === 'payment_pending').length === 0 ? (
+                    <div className="text-center py-16 bg-gradient-to-br from-card to-muted/20 rounded-xl border border-border/50 shadow-lg">
+                      <p className="text-muted-foreground">No pending payments</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6">
+                      {completedBookings.filter(b => b.status === 'payment_pending').map((booking) => (
+                        <Card key={booking.id} className="border-l-4 border-l-destructive shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-red-50/50 dark:to-red-950/20">
+                          <CardHeader className="pb-3">
+                            <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                              <div className="w-full sm:w-auto">
+                                <CardTitle className="text-lg sm:text-xl bg-gradient-to-r from-destructive to-orange-600 bg-clip-text text-transparent">
+                                  {booking.department_agency}
+                                </CardTitle>
+                                <div className="flex flex-col sm:flex-row gap-3 mt-3 text-sm">
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Calendar className="h-4 w-4 text-destructive" />
+                                    <span className="font-medium">{format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Users className="h-4 w-4 text-destructive" />
+                                    <span className="font-medium">{booking.num_participants} participants</span>
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                            {booking.num_of_bills && (
-                              <div className="flex items-center gap-2">
-                                <Hash className="h-4 w-4 text-muted-foreground" />
-                                <span>{booking.num_of_bills} bill(s)</span>
+                              <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
+                                <Badge variant="destructive" className="shadow-md">Payment Pending</Badge>
+                                {booking.financial_year && <Badge variant="outline" className="font-semibold">{booking.financial_year}</Badge>}
                               </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => handleUpdateStatus(booking.id, 'payment_completed')}
-                            >
-                              Mark Payment Completed
-                            </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                              <div className="flex items-center gap-2">
+                                <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
+                              </div>
+                              {booking.bill_no && (
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                  <span>Bill: {booking.bill_no}</span>
+                                </div>
+                              )}
+                              {booking.billed_date && (
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                  <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
+                                </div>
+                              )}
+                              {booking.num_of_bills && (
+                                <div className="flex items-center gap-2">
+                                  <Hash className="h-4 w-4 text-muted-foreground" />
+                                  <span>{booking.num_of_bills} bill(s)</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleUpdateStatus(booking.id, 'payment_completed')}
+                              >
+                                Mark Payment Completed
+                              </Button>
+                              {isAdmin && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingId(booking.id);
+                                      setBillAmount(booking.total_bill_amount?.toString() || "");
+                                      setBillNo(booking.bill_no || "");
+                                      setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
+                                      setNumOfBills(booking.num_of_bills?.toString() || "1");
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4 mr-1" />
+                                    Edit Bill
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEdit(booking)}
+                                  >
+                                    <Pencil className="h-4 w-4 mr-1" />
+                                    Edit Booking
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Payment Completed Tab */}
+                <TabsContent value="payment-completed" className="space-y-6">
+                  {completedBookings.filter(b => b.status === 'payment_completed').length === 0 ? (
+                    <div className="text-center py-16 bg-gradient-to-br from-card to-muted/20 rounded-xl border border-border/50 shadow-lg">
+                      <p className="text-muted-foreground">No completed payments yet</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6">
+                      {completedBookings.filter(b => b.status === 'payment_completed').map((booking) => (
+                        <Card key={booking.id} className="border-l-4 border-l-green-500 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-green-50/50 dark:to-green-950/20">
+                          <CardHeader className="pb-3">
+                            <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                              <div className="w-full sm:w-auto">
+                                <CardTitle className="text-base sm:text-lg">{booking.department_agency}</CardTitle>
+                                <div className="flex flex-col sm:flex-row gap-2 mt-2 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-4 w-4" />
+                                    {format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Users className="h-4 w-4" />
+                                    {booking.num_participants} participants
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
+                                <Badge className="bg-green-600">Payment Completed</Badge>
+                                {booking.financial_year && <Badge variant="outline">{booking.financial_year}</Badge>}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                              <div className="flex items-center gap-2">
+                                <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
+                              </div>
+                              {booking.bill_no && (
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                  <span>Bill: {booking.bill_no}</span>
+                                </div>
+                              )}
+                              {booking.billed_date && (
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                  <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
+                                </div>
+                              )}
+                              {booking.num_of_bills && (
+                                <div className="flex items-center gap-2">
+                                  <Hash className="h-4 w-4 text-muted-foreground" />
+                                  <span>{booking.num_of_bills} bill(s)</span>
+                                </div>
+                              )}
+                            </div>
                             {isAdmin && (
-                              <>
-                                <Button 
-                                  variant="outline" 
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => {
                                     setEditingId(booking.id);
@@ -443,112 +552,22 @@ const FinancialTrack = () => {
                                   <Pencil className="h-4 w-4 mr-1" />
                                   Edit Bill
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => handleEdit(booking)}
                                 >
                                   <Pencil className="h-4 w-4 mr-1" />
                                   Edit Booking
                                 </Button>
-                              </>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Payment Completed Tab */}
-              <TabsContent value="payment-completed" className="space-y-6">
-                {completedBookings.filter(b => b.status === 'payment_completed').length === 0 ? (
-                  <div className="text-center py-16 bg-gradient-to-br from-card to-muted/20 rounded-xl border border-border/50 shadow-lg">
-                    <p className="text-muted-foreground">No completed payments yet</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-6">
-                     {completedBookings.filter(b => b.status === 'payment_completed').map((booking) => (
-                      <Card key={booking.id} className="border-l-4 border-l-green-500 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-green-50/50 dark:to-green-950/20">
-                        <CardHeader className="pb-3">
-                          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                            <div className="w-full sm:w-auto">
-                              <CardTitle className="text-base sm:text-lg">{booking.department_agency}</CardTitle>
-                              <div className="flex flex-col sm:flex-row gap-2 mt-2 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-4 w-4" />
-                                  {format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Users className="h-4 w-4" />
-                                  {booking.num_participants} participants
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
-                              <Badge className="bg-green-600">Payment Completed</Badge>
-                              {booking.financial_year && <Badge variant="outline">{booking.financial_year}</Badge>}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
-                            </div>
-                            {booking.bill_no && (
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span>Bill: {booking.bill_no}</span>
                               </div>
                             )}
-                            {booking.billed_date && (
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span>Billed: {format(new Date(booking.billed_date), "MMM dd, yyyy")}</span>
-                              </div>
-                            )}
-                            {booking.num_of_bills && (
-                              <div className="flex items-center gap-2">
-                                <Hash className="h-4 w-4 text-muted-foreground" />
-                                <span>{booking.num_of_bills} bill(s)</span>
-                              </div>
-                            )}
-                          </div>
-                          {isAdmin && (
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => {
-                                  setEditingId(booking.id);
-                                  setBillAmount(booking.total_bill_amount?.toString() || "");
-                                  setBillNo(booking.bill_no || "");
-                                  setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
-                                  setNumOfBills(booking.num_of_bills?.toString() || "1");
-                                }}
-                              >
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Edit Bill
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEdit(booking)}
-                              >
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Edit Booking
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
               </div>
             </Tabs>
           </main>

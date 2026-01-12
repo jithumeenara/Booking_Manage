@@ -102,7 +102,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
         number_of_halls: needsTrainingHall ? numberOfHalls : null,
         purpose: purpose || null,
         financial_year: fy,
-        status: 'pending',
+        status: booking ? booking.status : 'pending',
       };
 
       const res = booking

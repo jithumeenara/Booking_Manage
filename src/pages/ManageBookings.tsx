@@ -455,9 +455,17 @@ const ManageBookings = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {booking.status === 'complete' && <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500">Ready for billing</Badge>}
+                            {booking.status === 'complete' && (
+                              <Link to="/financial-track" state={{ tab: 'pending-bills' }}>
+                                <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 cursor-pointer">Ready for billing</Badge>
+                              </Link>
+                            )}
                             {booking.status === 'payment_completed' && <Badge className="bg-green-600">Payment Completed</Badge>}
-                            {booking.status === 'payment_pending' && <Badge variant="destructive">Payment Pending</Badge>}
+                            {booking.status === 'payment_pending' && (
+                              <Link to="/financial-track" state={{ tab: 'payment-pending' }}>
+                                <Badge variant="destructive" className="cursor-pointer">Payment Pending</Badge>
+                              </Link>
+                            )}
                             {booking.status === 'pending' && <Badge variant="secondary">Pending</Badge>}
                           </TableCell>
                           <TableCell className="text-right">

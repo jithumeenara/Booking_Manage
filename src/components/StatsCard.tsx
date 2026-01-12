@@ -7,9 +7,11 @@ interface StatsCardProps {
   icon: LucideIcon;
   description?: string;
   colorVariant?: 'blue' | 'purple' | 'green' | 'orange';
+  onClick?: () => void;
+  className?: string;
 }
 
-export const StatsCard = ({ title, value, icon: Icon, description, colorVariant = 'blue' }: StatsCardProps) => {
+export const StatsCard = ({ title, value, icon: Icon, description, colorVariant = 'blue', onClick, className }: StatsCardProps) => {
   const gradientMap = {
     blue: 'bg-[image:var(--gradient-blue)]',
     purple: 'bg-[image:var(--gradient-purple)]',
@@ -25,7 +27,10 @@ export const StatsCard = ({ title, value, icon: Icon, description, colorVariant 
   };
 
   return (
-    <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50 ${gradientMap[colorVariant]}`}>
+    <Card
+      onClick={onClick}
+      className={`group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50 ${gradientMap[colorVariant]} ${onClick ? 'cursor-pointer' : ''} ${className || ''}`}
+    >
       <CardContent className="pt-6 relative">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wide">{title}</p>
