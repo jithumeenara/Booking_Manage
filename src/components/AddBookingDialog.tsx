@@ -24,6 +24,7 @@ interface AddBookingDialogProps {
 export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }: AddBookingDialogProps) => {
   const [departmentAgency, setDepartmentAgency] = useState("");
   const [contactPersonName, setContactPersonName] = useState("");
+  const [contactPersonEmail, setContactPersonEmail] = useState("");
   const [contactPersonPhone, setContactPersonPhone] = useState("");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -38,6 +39,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
     if (booking) {
       setDepartmentAgency(booking.department_agency);
       setContactPersonName(booking.contact_person_name);
+      setContactPersonEmail(booking.contact_person_email);
       setContactPersonPhone(booking.contact_person_phone);
       setStartDate(new Date(booking.start_date));
       setEndDate(new Date(booking.end_date));
@@ -55,6 +57,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
   const resetForm = () => {
     setDepartmentAgency("");
     setContactPersonName("");
+    setContactPersonEmail("");
     setContactPersonPhone("");
     setStartDate(undefined);
     setEndDate(undefined);
@@ -69,8 +72,13 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!departmentAgency || !contactPersonName || !contactPersonPhone || !startDate || !endDate) {
+    if (!departmentAgency || !contactPersonName || !contactPersonEmail || !contactPersonPhone || !startDate || !endDate) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (contactPersonPhone.length < 10) {
+      toast.error("Phone number must be at least 10 digits");
       return;
     }
 
@@ -91,7 +99,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
       const bookingData = {
         department_agency: departmentAgency,
         contact_person_name: contactPersonName,
-        contact_person_email: `${contactPersonName.split(/\s+/).join('.').toLowerCase()}@placeholder.com`,
+        contact_person_email: contactPersonEmail,
         contact_person_phone: contactPersonPhone,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
@@ -121,6 +129,11 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
 
       if (!res.ok) {
         const data = await res.json();
+        // Show specific validation details if available
+        if (data.details && typeof data.details === 'object') {
+          const messages = Object.values(data.details).flat().map((d: any) => d._errors || []).flat();
+          if (messages.length > 0) throw new Error(messages.join(', '));
+        }
         throw new Error(data.error || 'Failed to save booking');
       }
 
@@ -165,6 +178,18 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
                 value={contactPersonName}
                 onChange={(e) => setContactPersonName(e.target.value)}
                 placeholder="Enter full name"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contactEmail">Contact Email *</Label>
+              <Input
+                id="contactEmail"
+                type="email"
+                value={contactPersonEmail}
+                onChange={(e) => setContactPersonEmail(e.target.value)}
+                placeholder="email@example.com"
                 required
               />
             </div>

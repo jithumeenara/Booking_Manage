@@ -428,7 +428,7 @@ const ManageBookings = () => {
                         <TableRow key={booking.id}>
                           <TableCell className="font-medium">
                             {booking.department_agency}
-                            {booking.booked_via_link && (
+                            {!!booking.booked_via_link && (
                               <Badge variant="outline" className="ml-2 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
                                 Link
                               </Badge>
