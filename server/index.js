@@ -36,7 +36,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Body Parser with limits
-app.use(express.json({ limit: '10kb' })); // Limit body size to prevent DoS
+app.use(express.json({ limit: '100mb' })); // Increased limit for base64 images
 app.use(cookieParser());
 
 // Sanitize inputs
