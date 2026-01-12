@@ -193,7 +193,7 @@ const ReportGeneration = () => {
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList>
                 <TabsTrigger value="view">View Report</TabsTrigger>
-                <TabsTrigger value="print">Print Report</TabsTrigger>
+                <TabsTrigger value="print">Print Programme Report</TabsTrigger>
               </TabsList>
 
               <TabsContent value="view" className="space-y-6">
