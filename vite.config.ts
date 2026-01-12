@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => ({
     // Brotli compression (better than gzip)
     compression({
       algorithm: "brotliCompress",
-      exclude: [/\.(br)$/, /\(gz)$/],
+      exclude: [/\.(br)$/, /\.(gz)$/],
       threshold: 1024,
     }),
 
