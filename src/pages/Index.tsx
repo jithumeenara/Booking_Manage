@@ -63,7 +63,7 @@ const Index = () => {
 
   // Calculate stats from filtered bookings
   const totalBookings = filteredBookings.length;
-  const totalParticipants = filteredBookings.reduce((sum, b) => sum + b.num_participants, 0);
+  const totalParticipants = filteredBookings.reduce((sum, b) => sum + (Number(b.num_participants) || 0), 0);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -105,7 +105,7 @@ const Index = () => {
   }, [loading, totalNotifications]);
 
   const pendingBillsCount = pendingBillsBookings.length;
-  const totalPendingBillAmount = paymentPendingBookings.reduce((sum, b) => sum + (b.total_bill_amount || 0), 0);
+  const totalPendingBillAmount = paymentPendingBookings.reduce((sum, b) => sum + (Number(b.total_bill_amount) || 0), 0);
 
   // Calculate current accommodation usage (today)
   const accommodationToday = filteredBookings
@@ -116,7 +116,7 @@ const Index = () => {
       end.setHours(0, 0, 0, 0);
       return b.needs_accommodation && start <= today && end >= today;
     })
-    .reduce((sum, b) => sum + b.num_participants, 0);
+    .reduce((sum, b) => sum + (Number(b.num_participants) || 0), 0);
 
   // Get next 3 upcoming programmes
   const now = new Date();
