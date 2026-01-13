@@ -116,7 +116,7 @@ const ReportGeneration = () => {
     setPrintUpcoming(true);
     setPrintRunning(true);
     setPrintCompleted(true);
-    setPrintAll(false);
+    setPrintAll(true);
   };
 
   const resetFinancialView = () => {
@@ -215,12 +215,12 @@ const ReportGeneration = () => {
 
   // Calculate total revenue from payment_completed bookings only
   const totalRevenue = calculateRevenue(filteredBookings);
-  const totalParticipants = filteredBookings.reduce((sum, b) => sum + b.num_participants, 0);
+  const totalParticipants = filteredBookings.reduce((sum, b) => sum + (Number(b.num_participants) || 0), 0);
 
   // Calculate pending payment amount (payment_pending status only)
   const pendingPaymentAmount = filteredBookings
     .filter(b => b.status === 'payment_pending')
-    .reduce((sum, b) => sum + (b.total_bill_amount || 0), 0);
+    .reduce((sum, b) => sum + (Number(b.total_bill_amount) || 0), 0);
 
   if (loading) {
     return (

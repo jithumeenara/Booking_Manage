@@ -7,11 +7,11 @@
 const formatIndianNumber = (num: number, decimalPlaces: number = 0): string => {
   const isNegative = num < 0;
   const absNum = Math.abs(num);
-  
+
   // Split into integer and decimal parts
   let integerPart = Math.floor(absNum);
   let decimalPart = '';
-  
+
   if (decimalPlaces > 0) {
     const decimal = (absNum - integerPart).toFixed(decimalPlaces).substring(2);
     decimalPart = '.' + decimal;
@@ -19,11 +19,11 @@ const formatIndianNumber = (num: number, decimalPlaces: number = 0): string => {
     // Keep original decimal if number has decimals
     decimalPart = '.' + absNum.toString().split('.')[1];
   }
-  
+
   // Format integer part with Indian commas
   const numStr = integerPart.toString();
   let result = '';
-  
+
   if (numStr.length <= 3) {
     result = numStr;
   } else {
@@ -31,7 +31,7 @@ const formatIndianNumber = (num: number, decimalPlaces: number = 0): string => {
     const otherNumbers = numStr.substring(0, numStr.length - 3);
     result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + lastThree;
   }
-  
+
   return (isNegative ? '-' : '') + result + decimalPart;
 };
 
@@ -47,10 +47,10 @@ const formatIndianNumber = (num: number, decimalPlaces: number = 0): string => {
  */
 export const formatCurrency = (amount: number | null | undefined, showSymbol: boolean = true, decimalPlaces: number = 0): string => {
   const value = amount || 0;
-  
+
   // Always use manual Indian formatting for consistency
   const formatted = formatIndianNumber(value, decimalPlaces);
-  
+
   return showSymbol ? `₹${formatted}` : formatted;
 };
 
@@ -66,10 +66,8 @@ export const calculateRevenue = (bookings: Array<{ status?: string; total_bill_a
     .filter(b => b.status === 'payment_completed')
     .reduce((sum, b) => {
       // Convert to number to handle both string and number types
-      const amount = typeof b.total_bill_amount === 'string' 
-        ? parseFloat(b.total_bill_amount) 
-        : (b.total_bill_amount || 0);
-      return sum + (isNaN(amount) ? 0 : amount);
+      const amount = Number(b.total_bill_amount) || 0;
+      return sum + amount;
     }, 0);
 };
 
