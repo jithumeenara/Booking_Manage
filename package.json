@@ -76,9 +76,7 @@
     "uuid": "^9.0.1",
     "vaul": "^0.9.9",
     "xss-clean": "^0.1.4",
-    "zod": "^3.25.76"
-  },
-  "devDependencies": {
+    "zod": "^3.25.76",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
@@ -99,7 +97,7 @@
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
     "vite-plugin-compression2": "^2.4.0"
-  },
+  }
   "overrides": {},
   "server": {
     "start": "node server/index.js"
