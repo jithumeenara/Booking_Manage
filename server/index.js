@@ -135,7 +135,16 @@ app.put('/api/financial-years/:id/activate', setActiveFinancialYear);
 app.delete('/api/financial-years/:id', deleteFinancialYear);
 
 const PORT = process.env.PORT || 3001;
-await initAuth(); // Ensure database tables exist
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+// Only listen if run directly (not imported)
+if (process.env.NODE_ENV !== 'production') {
+  await initAuth(); // Ensure database tables exist
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+} else {
+  // For Vercel/Production, we still need initAuth but we export app
+  await initAuth();
+}
+
+export default app;
