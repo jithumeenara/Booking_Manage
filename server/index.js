@@ -135,6 +135,7 @@ app.put('/api/financial-years/:id/activate', setActiveFinancialYear);
 app.delete('/api/financial-years/:id', deleteFinancialYear);
 
 const PORT = process.env.PORT || 3001;
+await initAuth(); // Ensure database tables exist
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
