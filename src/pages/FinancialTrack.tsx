@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect as useReactEffect, useRef } from "react";
 import { format } from "date-fns";
 import { IndianRupee, Calendar, Users, FileText, Hash, RotateCcw } from "lucide-react";
@@ -407,6 +408,25 @@ const FinancialTrack = () => {
                                 </div>
                               </div>
                               <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
+                                {isAdmin && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                          onClick={() => handleUpdateStatus(booking.id, 'pending')}
+                                        >
+                                          <RotateCcw className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Revert to Ready for Billing</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                                 <Badge variant="destructive" className="shadow-md">Payment Pending</Badge>
                                 {booking.financial_year && <Badge variant="outline" className="font-semibold">{booking.financial_year}</Badge>}
                               </div>
@@ -512,15 +532,6 @@ const FinancialTrack = () => {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleUpdateStatus(booking.id, 'pending')}
-                                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
-                                      >
-                                        <RotateCcw className="h-4 w-4 mr-1" />
-                                        Revert to Ready for Billing
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
                                         onClick={() => {
                                           setEditingId(booking.id);
                                           setBillAmount(booking.total_bill_amount?.toString() || "");
@@ -578,6 +589,25 @@ const FinancialTrack = () => {
                                 </div>
                               </div>
                               <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
+                                {isAdmin && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-muted-foreground hover:text-orange-600"
+                                          onClick={() => handleUpdateStatus(booking.id, 'payment_pending')}
+                                        >
+                                          <RotateCcw className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Revert to Payment Pending</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                                 <Badge className="bg-green-600">Payment Completed</Badge>
                                 {booking.financial_year && <Badge variant="outline">{booking.financial_year}</Badge>}
                               </div>
@@ -671,15 +701,6 @@ const FinancialTrack = () => {
                                 </div>
                                 {isAdmin && (
                                   <div className="flex flex-col sm:flex-row gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleUpdateStatus(booking.id, 'payment_pending')}
-                                      className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-200"
-                                    >
-                                      <RotateCcw className="h-4 w-4 mr-1" />
-                                      Revert to Payment Pending
-                                    </Button>
                                     <Button
                                       variant="outline"
                                       size="sm"
