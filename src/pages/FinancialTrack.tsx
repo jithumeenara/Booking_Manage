@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect as useReactEffect, useRef } from "react";
 import { format } from "date-fns";
-import { IndianRupee, Calendar, Users, FileText, Hash } from "lucide-react";
+import { IndianRupee, Calendar, Users, FileText, Hash, RotateCcw } from "lucide-react";
 import { getCurrentFinancialYear, cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
@@ -512,6 +512,15 @@ const FinancialTrack = () => {
                                       <Button
                                         variant="outline"
                                         size="sm"
+                                        onClick={() => handleUpdateStatus(booking.id, 'pending')}
+                                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+                                      >
+                                        <RotateCcw className="h-4 w-4 mr-1" />
+                                        Revert to Ready for Billing
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
                                         onClick={() => {
                                           setEditingId(booking.id);
                                           setBillAmount(booking.total_bill_amount?.toString() || "");
@@ -662,6 +671,15 @@ const FinancialTrack = () => {
                                 </div>
                                 {isAdmin && (
                                   <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleUpdateStatus(booking.id, 'payment_pending')}
+                                      className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-200"
+                                    >
+                                      <RotateCcw className="h-4 w-4 mr-1" />
+                                      Revert to Payment Pending
+                                    </Button>
                                     <Button
                                       variant="outline"
                                       size="sm"
