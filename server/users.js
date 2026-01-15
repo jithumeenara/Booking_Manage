@@ -1,5 +1,6 @@
 import { pool } from './db.js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 // GET all users
 export async function getUsers(req, res) {
@@ -69,8 +70,24 @@ export async function updateUserProfile(req, res) {
     const { id } = req.params;
     const { name, email, mobile, currentPassword, newPassword } = req.body;
 
-    // Check if user is updating their own profile
-    if (req.user.id !== id && req.user.role !== 'admin') {
+    // Extract user from JWT cookie
+    const token = req.cookies?.auth_token;
+    if (!token) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    let currentUserId;
+    let currentUserRole;
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-change-me');
+      currentUserId = payload.sub;
+      currentUserRole = payload.role;
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Check if user is updating their own profile or is admin
+    if (currentUserId !== id && currentUserRole !== 'admin') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 

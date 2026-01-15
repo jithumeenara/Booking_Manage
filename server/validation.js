@@ -11,7 +11,7 @@ export const bookingSchema = z.object({
     needs_accommodation: z.boolean().optional(),
     needs_food: z.boolean().optional(),
     needs_training_hall: z.boolean().optional(),
-    number_of_halls: z.number().int().min(1).optional().default(1),
+    number_of_halls: z.number().int().min(0).optional().default(0),
     purpose: z.string().optional(),
     financial_year: z.string().optional(),
     status: z.enum(['pending', 'complete', 'payment_completed', 'payment_pending']).optional(),

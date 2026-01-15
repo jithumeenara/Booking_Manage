@@ -111,7 +111,7 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
     setIsSaving(true);
     try {
       // Update basic profile info including photo
-      const profileRes = await fetch(`/api/users/${userProfile.id}`, {
+      const profileRes = await fetch(`/api/users/${userProfile.id}/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
