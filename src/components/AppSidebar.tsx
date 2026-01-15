@@ -1,4 +1,4 @@
-import { Plus, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, Phone, Shield, Cog, UserPen } from "lucide-react";
+import { Plus, Home, CalendarDays, IndianRupee, FileText, Link as LinkIcon, LogOut, Phone, Shield, Cog, UserPen, Building } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePermissions, User, clearPermissionsCache } from "@/hooks/usePermissions";
@@ -171,6 +171,7 @@ export function AppSidebar({ onAddBooking }: AppSidebarProps) {
     { title: "Financial Track", url: "/financial-track", icon: IndianRupee, permission: "programs" },
     { title: "Report Generation", url: "/report-generation", icon: FileText, permission: "reports" },
     { title: "Booking Links", url: "/booking-links", icon: LinkIcon, permission: "booking-links" },
+    { title: "Training Halls", url: "/training-halls", icon: Building, permission: "view-training-halls" }, // Updated permission
   ];
 
   // Filter menu items based on user permissions

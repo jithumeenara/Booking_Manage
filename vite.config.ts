@@ -23,18 +23,11 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
 
-    // Gzip compression
+    // Compression (Gzip & Brotli)
     compression({
-      algorithm: "gzip",
+      algorithms: ["gzip", "brotliCompress"],
       exclude: [/\.(br)$/, /\.(gz)$/],
       threshold: 1024, // Only compress files larger than 1KB
-    }),
-
-    // Brotli compression (better than gzip)
-    compression({
-      algorithm: "brotliCompress",
-      exclude: [/\.(br)$/, /\.(gz)$/],
-      threshold: 1024,
     }),
 
     // Bundle size analyzer (development only)

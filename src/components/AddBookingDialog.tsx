@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,10 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
   const [needsTrainingHall, setNeedsTrainingHall] = useState(false);
   const [numberOfHalls, setNumberOfHalls] = useState(1);
   const [purpose, setPurpose] = useState("");
+  /* Unused: availableHalls, selectedHallIds, loadingHalls removed */
+  const navigate = useNavigate();
+
+
 
   useEffect(() => {
     if (booking) {
@@ -44,11 +49,12 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
       setStartDate(new Date(booking.start_date));
       setEndDate(new Date(booking.end_date));
       setNumParticipants(booking.num_participants);
-      setNeedsAccommodation(booking.needs_accommodation);
-      setNeedsFood(booking.needs_food);
-      setNeedsTrainingHall(booking.needs_training_hall);
+      setNeedsAccommodation(Boolean(booking.needs_accommodation));
+      setNeedsFood(Boolean(booking.needs_food));
+      setNeedsTrainingHall(Boolean(booking.needs_training_hall));
       setNumberOfHalls(booking.number_of_halls || 1);
       setPurpose(booking.purpose || "");
+
     } else {
       resetForm();
     }
@@ -66,6 +72,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
     setNeedsFood(false);
     setNeedsTrainingHall(false);
     setNumberOfHalls(1);
+
     setPurpose("");
   };
 
@@ -107,11 +114,14 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
         needs_accommodation: needsAccommodation,
         needs_food: needsFood,
         needs_training_hall: needsTrainingHall,
-        number_of_halls: needsTrainingHall ? numberOfHalls : 1,
+        number_of_halls: needsTrainingHall ? numberOfHalls : 0,
+        // hall_ids removed to prevent overwriting existing allocations on edit 
         purpose: purpose || undefined,
         financial_year: fy,
         status: booking ? booking.status : 'pending',
       };
+
+      console.log('Submitting booking data:', bookingData);
 
       const res = booking
         ? await fetch(`/api/bookings/${booking.id}`, {
@@ -137,7 +147,12 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
         throw new Error(data.error || 'Failed to save booking');
       }
 
-      toast.success(booking ? "Booking updated successfully!" : "Booking added successfully!");
+      toast.success(booking ? "Booking updated successfully!" : "Booking added successfully!", {
+        action: needsTrainingHall ? {
+          label: 'Allocate Halls',
+          onClick: () => navigate('/training-halls')
+        } : undefined
+      });
       resetForm();
       onOpenChange(false);
       onBookingAdded();
@@ -151,7 +166,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{booking ? "Edit Programme Booking" : "Add New Programme Booking"}</DialogTitle>
+          <DialogTitle>{booking ? "Edit Booking Details" : "New Booking"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -330,18 +345,19 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
               </div>
 
               {needsTrainingHall && (
-                <div className="ml-6 space-y-2">
-                  <Label htmlFor="numberOfHalls">Number of Halls to Book *</Label>
+                <div className="ml-6 space-y-2 border rounded-md p-3 bg-muted/20">
+                  <Label htmlFor="numberOfHalls">Number of Halls Needed</Label>
                   <Input
                     id="numberOfHalls"
                     type="number"
                     min="1"
-                    max="5"
                     value={numberOfHalls}
-                    onChange={(e) => setNumberOfHalls(Number.parseInt(e.target.value, 10) || 1)}
+                    onChange={(e) => setNumberOfHalls(parseInt(e.target.value) || 1)}
                     required
                   />
-                  <p className="text-xs text-muted-foreground">Available: 4 halls (60 capacity each) + 1 hall (60+ capacity)</p>
+                  <p className="text-xs text-muted-foreground">
+                    You can allocate specific halls in the "Training Halls" section after creating the booking.
+                  </p>
                 </div>
               )}
             </div>

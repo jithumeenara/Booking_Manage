@@ -221,7 +221,17 @@ This is an automated confirmation email.
 // GET all bookings
 export async function getBookings(req, res) {
   try {
-    const [rows] = await pool.query('SELECT id, department_agency, contact_person_name, contact_person_email, contact_person_phone, start_date, end_date, num_participants, needs_accommodation, needs_food, needs_training_hall, number_of_halls, purpose, created_at, updated_at, status, total_bill_amount, completed_at, financial_year, bill_no, billed_date, num_of_bills, booked_via_link FROM bookings ORDER BY created_at DESC');
+    const [rows] = await pool.query(`
+      SELECT b.*, 
+        (
+          SELECT JSON_ARRAYAGG(JSON_OBJECT('id', th.id, 'name', th.name, 'code', th.code))
+          FROM booking_halls bh
+          JOIN training_halls th ON bh.hall_id = th.id
+          WHERE bh.booking_id = b.id
+        ) as allocated_halls
+      FROM bookings b 
+      ORDER BY b.created_at DESC
+    `);
     return res.json(rows);
   } catch (e) {
     console.error(e);
@@ -233,7 +243,17 @@ export async function getBookings(req, res) {
 export async function getBooking(req, res) {
   try {
     const { id } = req.params;
-    const [rows] = await pool.query('SELECT id, department_agency, contact_person_name, contact_person_email, contact_person_phone, start_date, end_date, num_participants, needs_accommodation, needs_food, needs_training_hall, number_of_halls, purpose, created_at, updated_at, status, total_bill_amount, completed_at, financial_year, bill_no, billed_date, num_of_bills FROM bookings WHERE id = ?', [id]);
+    const [rows] = await pool.query(`
+      SELECT b.*, 
+        (
+          SELECT JSON_ARRAYAGG(JSON_OBJECT('id', th.id, 'name', th.name, 'code', th.code))
+          FROM booking_halls bh
+          JOIN training_halls th ON bh.hall_id = th.id
+          WHERE bh.booking_id = b.id
+        ) as allocated_halls
+      FROM bookings b 
+      WHERE b.id = ?
+    `, [id]);
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
     return res.json(rows[0]);
   } catch (e) {
@@ -272,12 +292,14 @@ export async function createBooking(req, res) {
       status = 'pending',
       booked_via_link = false,
       booking_link_token,
+      hall_ids = [] // New field
     } = validation.data;
 
-    // Convert ISO dates to MySQL datetime format
+    // Convert ISO dates to MySQL datetime format (Use Local Time)
     const formatDateForMySQL = (isoDate) => {
       const date = new Date(isoDate);
-      return date.toISOString().slice(0, 19).replace('T', ' ');
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     };
 
     const id = uuidv4();
@@ -293,6 +315,12 @@ export async function createBooking(req, res) {
         number_of_halls, purpose, financial_year, status, booked_via_link
       ]
     );
+
+    // Handle Hall Allocations
+    if (needs_training_hall && Array.isArray(hall_ids) && hall_ids.length > 0) {
+      const hallValues = hall_ids.map(hid => [id, hid]);
+      await pool.query('INSERT INTO booking_halls (booking_id, hall_id) VALUES ?', [hallValues]);
+    }
 
     // Send confirmation email if booked via link
     if (booked_via_link) {
@@ -354,15 +382,18 @@ export async function updateBooking(req, res) {
       'department_agency', 'contact_person_name', 'contact_person_email', 'contact_person_phone',
       'start_date', 'end_date', 'num_participants', 'needs_accommodation', 'needs_food',
       'needs_training_hall', 'number_of_halls', 'purpose', 'status', 'total_bill_amount',
-      'completed_at', 'financial_year', 'bill_no', 'billed_date', 'num_of_bills'
+      'completed_at', 'financial_year', 'bill_no', 'billed_date', 'num_of_bills', 'hall_ids' // Added hall_ids
     ]);
-    const fields = Object.keys(updates).filter(k => allowed.has(k));
+    const fields = Object.keys(updates).filter(k => allowed.has(k) && k !== 'hall_ids'); // Filter out hall_ids from main update
     if (!fields.length) return res.status(400).json({ error: 'No valid fields to update' });
 
-    // Convert ISO dates to MySQL datetime format
+    // Convert ISO dates to MySQL datetime format (Use Local Time)
     const formatDateForMySQL = (isoDate) => {
       const date = new Date(isoDate);
-      return date.toISOString().slice(0, 19).replace('T', ' ');
+      const pad = (n) => String(n).padStart(2, '0');
+      const formatted = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+      console.log(`[DEBUG] Date Conversion: Input=${isoDate}, Formatted=${formatted}, ServerTime=${new Date().toString()}`);
+      return formatted;
     };
 
     const dateFields = new Set(['start_date', 'end_date', 'completed_at', 'billed_date']);
@@ -375,7 +406,20 @@ export async function updateBooking(req, res) {
       return updates[f];
     });
 
+    console.log('[DEBUG] SQL Parameters:', values);
     const [result] = await pool.query(`UPDATE bookings SET ${setParts} WHERE id = ?`, [...values, id]);
+
+    // Handle Hall Allocations Update
+    if (updates.hall_ids !== undefined) {
+      // Clear existing
+      await pool.query('DELETE FROM booking_halls WHERE booking_id = ?', [id]);
+
+      // Insert new if any
+      if (Array.isArray(updates.hall_ids) && updates.hall_ids.length > 0) {
+        const hallValues = updates.hall_ids.map(hid => [id, hid]);
+        await pool.query('INSERT INTO booking_halls (booking_id, hall_id) VALUES ?', [hallValues]);
+      }
+    }
 
     // Check if we need to send a "Payment Received" notification
     if (updates.status === 'payment_completed' || updates.status === 'complete') {
@@ -406,5 +450,103 @@ export async function deleteBooking(req, res) {
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Server error' });
+  }
+}
+
+// Allocate a hall to a booking (Add to existing allocations)
+export async function allocateHallToBooking(req, res) {
+  try {
+    const { bookingId } = req.params;
+    const { hall_id } = req.body;
+
+    if (!hall_id) {
+      return res.status(400).json({ error: 'hall_id is required' });
+    }
+
+    // 1. Get current booking dates
+    const [currentBooking] = await pool.query(
+      'SELECT start_date, end_date FROM bookings WHERE id = ?',
+      [bookingId]
+    );
+
+    if (currentBooking.length === 0) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    const { start_date, end_date } = currentBooking[0];
+
+    // 2. Check for date overlaps with existing allocations for this hall
+    // Overlap condition: (StartA <= EndB) and (EndA >= StartB)
+    const [conflicts] = await pool.query(
+      `SELECT b.department_agency, b.start_date, b.end_date 
+       FROM bookings b
+       JOIN booking_halls bh ON b.id = bh.booking_id
+       WHERE bh.hall_id = ? 
+       AND b.id != ?
+       AND (DATE(b.start_date) <= DATE(?) AND DATE(b.end_date) >= DATE(?))`,
+      [hall_id, bookingId, end_date, start_date]
+    );
+
+    if (conflicts.length > 0) {
+      const conflict = conflicts[0];
+      const conflictStart = new Date(conflict.start_date).toLocaleDateString('en-IN');
+      const conflictEnd = new Date(conflict.end_date).toLocaleDateString('en-IN');
+      return res.status(409).json({
+        error: `Hall is unavailable. Already booked by ${conflict.department_agency} (${conflictStart} - ${conflictEnd})`
+      });
+    }
+
+    // 3. Check if this specific allocation already exists (idempotency)
+    const [existing] = await pool.query(
+      'SELECT * FROM booking_halls WHERE booking_id = ? AND hall_id = ?',
+      [bookingId, hall_id]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Hall already allocated to this booking' });
+    }
+
+    // 4. Proceed with allocation
+    await pool.query(
+      'INSERT INTO booking_halls (booking_id, hall_id) VALUES (?, ?)',
+      [bookingId, hall_id]
+    );
+
+    // Update booking's needs_training_hall status just in case
+    await pool.query(
+      'UPDATE bookings SET needs_training_hall = TRUE WHERE id = ?',
+      [bookingId]
+    );
+
+    res.json({ message: 'Hall allocated successfully' });
+  } catch (error) {
+    console.error('Error allocating hall:', error);
+    res.status(500).json({ error: 'Failed to allocate hall' });
+  }
+}
+
+// Get active bookings for today with allocated halls
+export async function getTodayAllocations(req, res) {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD local approx
+
+    // We want bookings where today is BETWEEN start_date AND end_date
+    // AND they have allocated halls
+    const query = `
+      SELECT 
+        b.id, b.department_agency, b.start_date, b.end_date, 
+        th.id AS hall_id, th.name AS hall_name, th.floor
+      FROM bookings b
+      JOIN booking_halls bh ON b.id = bh.booking_id
+      JOIN training_halls th ON bh.hall_id = th.id
+      WHERE DATE(b.start_date) <= CURDATE() AND DATE(b.end_date) >= CURDATE()
+      ORDER BY th.floor, th.name
+    `;
+
+    const [rows] = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching today allocations:', error);
+    res.status(500).json({ error: 'Failed to fetch today allocations' });
   }
 }

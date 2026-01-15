@@ -402,3 +402,20 @@ export async function sendReadyForBilling(req, res) {
     res.status(500).json({ error: 'Failed to send ready for billing', details: error.message });
   }
 }
+
+export async function notifyPermissionChange(adminName, targetUserName, changes) {
+  const message = `
+⚠️ *User Permissions Updated*
+
+*Updated By:* ${adminName}
+*Target User:* ${targetUserName}
+*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' })}
+
+*Changes Made:*
+${changes.map(c => `• ${c.page.replace(/-/g, ' ')}: ${c.can_access ? '✅ Granted' : '❌ Revoked'}`).join('\n')}
+
+Permissions have been modified by an administrator.
+  `.trim();
+
+  await getConfigAndSend('permission_change', message);
+}

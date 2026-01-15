@@ -164,6 +164,39 @@ export async function ensureSchema() {
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS floors(
+      id CHAR(36) NOT NULL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL UNIQUE,
+      display_order INT DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS training_halls(
+      id CHAR(36) NOT NULL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      floor VARCHAR(50) NULL,
+      code VARCHAR(50) NOT NULL UNIQUE,
+      capacity INT NOT NULL DEFAULT 0,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS booking_halls(
+      booking_id CHAR(36) NOT NULL,
+      hall_id CHAR(36) NOT NULL,
+      PRIMARY KEY(booking_id, hall_id),
+      FOREIGN KEY(booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+      FOREIGN KEY(hall_id) REFERENCES training_halls(id) ON DELETE CASCADE
+    ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+    `);
   } finally {
     conn.release();
   }

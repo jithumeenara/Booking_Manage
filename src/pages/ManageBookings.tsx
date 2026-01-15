@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon, Filter, LayoutGrid, Table as TableIcon, Phone } from "lucide-react";
+import { Calendar as CalendarIcon, Filter, LayoutGrid, Table as TableIcon, Phone, Building, Layers, Users } from "lucide-react";
 import { format } from "date-fns";
 import { cn, getCurrentFinancialYear } from "@/lib/utils";
 import {
@@ -34,12 +34,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash2, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const ManageBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | undefined>();
+
+  // Allocation State
+  const [allocateDialogOpen, setAllocateDialogOpen] = useState(false);
+  const [bookingToAllocate, setBookingToAllocate] = useState<Booking | undefined>();
 
   // Filter states
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
@@ -112,6 +117,11 @@ const ManageBookings = () => {
     // Allow editing even if payment is completed
     setSelectedBooking(booking);
     setEditDialogOpen(true);
+  };
+
+  const handleAllocate = (booking: Booking) => {
+    setBookingToAllocate(booking);
+    setAllocateDialogOpen(true);
   };
 
   const handleDialogClose = () => {
@@ -299,7 +309,7 @@ const ManageBookings = () => {
                   <SelectContent>
                     <SelectItem value="all">All FY</SelectItem>
                     {financialYears.map(fy => (
-                      <SelectItem key={fy} value={fy!}>{fy}</SelectItem>
+                      <SelectItem key={fy} value={fy}>{fy}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -403,6 +413,7 @@ const ManageBookings = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onMarkComplete={handleMarkComplete}
+                    onAllocate={handleAllocate}
                     showCompleteButton={true}
                   />
                 ))}
@@ -467,9 +478,25 @@ const ManageBookings = () => {
                               </Link>
                             )}
                             {booking.status === 'pending' && <Badge variant="secondary">Pending</Badge>}
+                            {booking.needs_training_hall && (
+                              <div className="mt-1">
+                                {booking.allocated_halls && booking.allocated_halls.length > 0 && Array.isArray(booking.allocated_halls) && booking.allocated_halls[0] && booking.allocated_halls[0].id ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {booking.allocated_halls.map((h: any) => h && h.id && <Badge key={h.id} variant="outline" className="text-[10px] h-4 bg-blue-50 text-blue-700 border-blue-200">{h.name}</Badge>)}
+                                  </div>
+                                ) : (
+                                  <Badge variant="outline" className="text-[9px] bg-orange-50 text-orange-700 border-orange-200">Not Allocated</Badge>
+                                )}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              {booking.needs_training_hall && booking.status === 'pending' && (
+                                <Button variant="ghost" size="sm" onClick={() => handleAllocate(booking)} title="Allocate Hall">
+                                  <Building className="h-4 w-4" />
+                                </Button>
+                              )}
                               {booking.status === 'pending' && (
                                 <Button
                                   variant="ghost"
@@ -530,9 +557,142 @@ const ManageBookings = () => {
           onBookingAdded={fetchBookings}
           booking={selectedBooking}
         />
+
+        {bookingToAllocate && (
+          <BookingAllocationDialog
+            open={allocateDialogOpen}
+            onOpenChange={setAllocateDialogOpen}
+            booking={bookingToAllocate}
+            onAllocated={() => {
+              fetchBookings();
+              setAllocateDialogOpen(false);
+            }}
+          />
+        )}
       </div>
     </SidebarProvider>
   );
 };
+
+// Booking Allocation Dialog Implementation
+function BookingAllocationDialog({ open, onOpenChange, booking, onAllocated }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  booking: Booking;
+  onAllocated: () => void;
+}) {
+  const [halls, setHalls] = useState<any[]>([]);
+  const [occupiedHallIds, setOccupiedHallIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      fetchHalls();
+      fetchAvailability();
+    }
+  }, [open]);
+
+  const fetchHalls = async () => {
+    try {
+      const res = await fetch('/api/training-halls?activeOnly=true');
+      if (res.ok) {
+        const data = await res.json();
+        setHalls(data);
+      }
+    } catch (error) {
+      toast.error("Failed to fetch halls");
+    }
+  };
+
+  const fetchAvailability = async () => {
+    try {
+      const res = await fetch(`/api/training-halls/availability?startDate=${booking.start_date}&endDate=${booking.end_date}&excludeBookingId=${booking.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOccupiedHallIds(data.occupiedHallIds || []);
+      }
+    } catch (error) {
+      console.error("Failed to check availability");
+    }
+  }
+
+  const handleAllocate = async (hallId: string) => {
+    // Prevent allocating if busy
+    if (occupiedHallIds.includes(hallId)) {
+      toast.error("This hall is already allocated for the selected dates.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/halls`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hall_id: hallId })
+      });
+
+      if (res.ok) {
+        toast.success("Hall allocated successfully");
+        onAllocated();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to allocate hall");
+      }
+    } catch (error) {
+      toast.error("Error allocating hall");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Allocate Hall for {booking.department_agency}</DialogTitle>
+          <DialogDescription>
+            Select a training hall. Red tiles indicate halls are booked for these dates.
+            <br />
+            <span className="text-xs">Dates: {format(new Date(booking.start_date), "MMM dd")} - {format(new Date(new Date(booking.end_date).setDate(new Date(booking.end_date).getDate() - 1)), "MMM dd")}</span>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-[60vh] overflow-y-auto p-1">
+          {halls.map(hall => {
+            const isOccupied = occupiedHallIds.includes(hall.id);
+            return (
+              <div
+                key={hall.id}
+                className={cn(
+                  "border p-2 rounded-md transition-all flex flex-col gap-1.5 relative group",
+                  isOccupied
+                    ? "bg-red-50/80 border-red-100 opacity-60 cursor-not-allowed"
+                    : "hover:bg-muted/50 cursor-pointer hover:border-primary/20 hover:shadow-sm bg-card"
+                )}
+                onClick={() => !isOccupied && handleAllocate(hall.id)}
+              >
+                <div className="flex justify-between items-start">
+                  <span className="font-semibold text-xs truncate">{hall.name}</span>
+                  {hall.is_active && !isOccupied && <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0"></span>}
+                  {isOccupied && <span className="text-[10px] text-red-500 font-medium leading-none">Booked</span>}
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Layers className="h-3 w-3" />
+                  <span>{hall.floor || "Unassigned"}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Users className="h-3 w-3" />
+                  <span>{hall.capacity} Seats</span>
+                </div>
+                {!isOccupied && (
+                  <Button size="sm" className="mt-1 w-full h-6 text-[10px]" variant="secondary">
+                    Allocate
+                  </Button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default ManageBookings;

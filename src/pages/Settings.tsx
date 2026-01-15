@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Mail, Server, Key, Lock, Save, Users, Shield, Camera, UserCog, Settings as SettingsIcon, Send, Calendar, DollarSign, FileText, UserPlus, User, Trash2 } from "lucide-react";
+import { Mail, Server, Key, Lock, Save, Users, Shield, Camera, UserCog, Settings as SettingsIcon, Send, Calendar, DollarSign, FileText, UserPlus, User, Trash2, Layers, Building } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { FloorsManager } from "@/components/FloorsManager";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -770,7 +771,7 @@ export default function Settings() {
           <main className="flex-1 p-6">
             <div className="max-w-5xl mx-auto">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:inline-grid">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:w-auto lg:inline-grid">
                   <TabsTrigger value="email" className="gap-2">
                     <Mail className="h-4 w-4" />
                     <span className="hidden sm:inline">Email Config</span>
@@ -783,11 +784,20 @@ export default function Settings() {
                     <Send className="h-4 w-4" />
                     <span className="hidden sm:inline">Telegram Bot</span>
                   </TabsTrigger>
+                  <TabsTrigger value="floors" className="gap-2">
+                    <Layers className="h-4 w-4" />
+                    <span className="hidden sm:inline">Floors</span>
+                  </TabsTrigger>
                   <TabsTrigger value="general" className="gap-2">
                     <SettingsIcon className="h-4 w-4" />
                     <span className="hidden sm:inline">General</span>
                   </TabsTrigger>
                 </TabsList>
+
+                {/* Floors Tab */}
+                <TabsContent value="floors" className="space-y-4">
+                  <FloorsManager />
+                </TabsContent>
 
                 {/* Email Configuration Tab */}
                 <TabsContent value="email" className="space-y-4">

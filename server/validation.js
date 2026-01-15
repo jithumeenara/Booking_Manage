@@ -16,7 +16,8 @@ export const bookingSchema = z.object({
     financial_year: z.string().optional(),
     status: z.enum(['pending', 'complete', 'payment_completed', 'payment_pending']).optional(),
     booked_via_link: z.boolean().optional(),
-    booking_link_token: z.string().optional()
+    booking_link_token: z.string().optional(),
+    hall_ids: z.array(z.string()).optional()
 });
 
 export const signupSchema = z.object({

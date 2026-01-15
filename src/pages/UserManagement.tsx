@@ -423,7 +423,11 @@ export default function UserManagement() {
                   'settings': 'App settings',
                   'user-management': 'Manage users',
                   'edit-financial-details': 'Edit bill details',
-                  'revert-financial-status': 'Revert status'
+                  'revert-financial-status': 'Revert status',
+                  'view-training-halls': 'View Training Halls',
+                  'add-training-hall': 'Add Training Hall',
+                  'edit-training-hall': 'Edit Training Hall',
+                  'delete-training-hall': 'Delete Training Hall'
                 };
 
                 return (

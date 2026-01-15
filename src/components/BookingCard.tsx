@@ -38,6 +38,7 @@ export interface Booking {
   billed_date?: string;
   num_of_bills?: number;
   booked_via_link?: boolean;
+  allocated_halls?: { id: string; name: string; code: string }[];
 }
 
 interface BookingCardProps {
@@ -45,10 +46,11 @@ interface BookingCardProps {
   onDelete?: (id: string) => void;
   onEdit?: (booking: Booking) => void;
   onMarkComplete?: (booking: Booking) => void;
+  onAllocate?: (booking: Booking) => void;
   showCompleteButton?: boolean;
 }
 
-export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCompleteButton }: BookingCardProps) => {
+export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, onAllocate, showCompleteButton }: BookingCardProps) => {
   const isPastEndDate = new Date(booking.end_date) < new Date();
   const canMarkComplete = isPastEndDate && booking.status === 'pending';
   return (
@@ -115,7 +117,7 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-4 items-start">
           {booking.needs_accommodation && (
             <Badge variant="outline" className="text-xs gap-1">
               <Home className="h-3 w-3" />
@@ -129,10 +131,29 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
             </Badge>
           )}
           {booking.needs_training_hall && (
-            <Badge variant="outline" className="text-xs gap-1">
-              <Building className="h-3 w-3" />
-              Training Hall {booking.number_of_halls && booking.number_of_halls > 1 ? `(${booking.number_of_halls} halls)` : ''}
-            </Badge>
+            <div className="flex flex-col gap-1">
+              <Badge variant="outline" className="text-xs gap-1 w-fit bg-blue-50/50">
+                <Building className="h-3 w-3" />
+                Training Hall {booking.number_of_halls && booking.number_of_halls > 1 ? `(${booking.number_of_halls} halls)` : ''}
+              </Badge>
+              {booking.allocated_halls && booking.allocated_halls.length > 0 && Array.isArray(booking.allocated_halls) ? (
+                <div className="flex flex-wrap gap-1 pl-1">
+                  {booking.allocated_halls.map((h: any) => (
+                    // Check for nulls if left join had no matches and JSON_ARRAYAGG returned [null]
+                    h && h.id ? (
+                      <Badge key={h.id} variant="secondary" className="text-[10px] h-4 px-1.5 border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100">
+                        {h.name}
+                      </Badge>
+                    ) : null
+                  ))}
+                </div>
+              ) : (
+                // Show "Allocated: None" or similar if needed, or rely on button below
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5 border-orange-100 bg-orange-50 text-orange-700">
+                  Not Allocated
+                </Badge>
+              )}
+            </div>
           )}
         </div>
 
@@ -142,7 +163,13 @@ export const BookingCard = ({ booking, onDelete, onEdit, onMarkComplete, showCom
       </CardContent>
 
       <CardFooter className="flex gap-2 flex-wrap">
-        {onEdit && booking.status === 'pending' && (
+        {onAllocate && booking.needs_training_hall && booking.status === 'pending' && (
+          <Button variant="secondary" size="sm" onClick={() => onAllocate(booking)} className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
+            <Building className="h-4 w-4 mr-2" />
+            Allocate
+          </Button>
+        )}
+        {onEdit && (booking.status === 'pending' || booking.status === 'confirmed') && (
           <Button variant="outline" size="sm" onClick={() => onEdit(booking)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit

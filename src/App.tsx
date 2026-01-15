@@ -14,6 +14,7 @@ const ReportGeneration = lazy(() => import("./pages/ReportGeneration"));
 const BookingLinks = lazy(() => import("./pages/BookingLinks"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const Settings = lazy(() => import("./pages/Settings"));
+const TrainingHalls = lazy(() => import("./pages/TrainingHalls"));
 const PublicBooking = lazy(() => import("./pages/PublicBooking"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AccessDenied = lazy(() => import("./pages/AccessDenied"));
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/financial-track" element={<ProtectedRoute requiredPermission="programs"><FinancialTrack /></ProtectedRoute>} />
             <Route path="/report-generation" element={<ProtectedRoute requiredPermission="reports"><ReportGeneration /></ProtectedRoute>} />
             <Route path="/booking-links" element={<ProtectedRoute requiredPermission="booking-links"><BookingLinks /></ProtectedRoute>} />
+            <Route path="/training-halls" element={<ProtectedRoute requiredPermission="view-training-halls"><TrainingHalls /></ProtectedRoute>} />
             <Route path="/user-management" element={<ProtectedRoute requiredPermission="user-management"><UserManagement /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute requiredPermission="settings"><Settings /></ProtectedRoute>} />
 
