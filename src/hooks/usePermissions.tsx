@@ -58,6 +58,8 @@ export function usePermissions() {
                     { page: 'reports', can_access: true },
                     { page: 'settings', can_access: true },
                     { page: 'user-management', can_access: true },
+                    { page: 'edit-financial-details', can_access: true },
+                    { page: 'revert-financial-status', can_access: true },
                 ];
                 setPermissions(allPermissions);
                 (globalThis as any).__PERM_CACHE__ = allPermissions; // Cache perms

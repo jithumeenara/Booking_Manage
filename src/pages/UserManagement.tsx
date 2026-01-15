@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, Shield, Key, Camera } from "lucide-react";
+import { User, Mail, Phone, Shield, Key, Camera, Lock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 interface Profile {
@@ -32,6 +33,58 @@ export default function UserManagement() {
   const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Permission state
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [userPermissions, setUserPermissions] = useState<{ page: string; can_access: boolean }[]>([]);
+
+  const loadPermissions = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}/permissions`, {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserPermissions(data);
+      }
+    } catch (error) {
+      console.error('Error loading permissions:', error);
+      toast.error("Failed to load permissions");
+    }
+  };
+
+  const handleUpdatePermissions = async () => {
+    if (!selectedUser) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/users/${selectedUser.id}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ permissions: userPermissions }),
+      });
+      if (res.ok) {
+        toast.success("Permissions updated successfully");
+        setShowPermissionsDialog(false);
+      } else {
+        toast.error("Failed to update permissions");
+      }
+    } catch (error) {
+      console.error('Error updating permissions:', error);
+      toast.error("Failed to update permissions");
+    }
+    setSaving(false);
+  };
+
+  const togglePermission = (page: string) => {
+    setUserPermissions(prev =>
+      prev.map(p => p.page === page ? { ...p, can_access: !p.can_access } : p)
+    );
+  };
+
+  const formatPermissionName = (page: string) => {
+    return page.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
 
   const load = async () => {
     setLoading(true);
@@ -172,10 +225,10 @@ export default function UserManagement() {
                 <p className="text-sm text-muted-foreground">{filtered.length} user{filtered.length !== 1 ? 's' : ''} found</p>
               </div>
               <div className="w-full sm:w-72">
-                <Input 
-                  placeholder="Search by name, email, or mobile" 
-                  value={filter} 
-                  onChange={(e) => setFilter(e.target.value)} 
+                <Input
+                  placeholder="Search by name, email, or mobile"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
                 />
               </div>
             </div>
@@ -224,9 +277,9 @@ export default function UserManagement() {
                       </div>
                       <Separator />
                       <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="flex-1"
                           onClick={() => {
                             setSelectedUser(user);
@@ -236,9 +289,9 @@ export default function UserManagement() {
                           <Shield className="h-4 w-4 mr-1" />
                           Role
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="flex-1"
                           onClick={() => {
                             setSelectedUser(user);
@@ -248,9 +301,9 @@ export default function UserManagement() {
                           <Camera className="h-4 w-4 mr-1" />
                           Photo
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="flex-1"
                           onClick={() => {
                             setSelectedUser(user);
@@ -260,6 +313,21 @@ export default function UserManagement() {
                           <Key className="h-4 w-4 mr-1" />
                           Reset
                         </Button>
+                        {user.role !== 'admin' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              loadPermissions(user.id);
+                              setShowPermissionsDialog(true);
+                            }}
+                          >
+                            <Lock className="h-4 w-4 mr-1" />
+                            Perms
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -282,8 +350,8 @@ export default function UserManagement() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Role</Label>
-              <Select 
-                value={selectedUser?.role} 
+              <Select
+                value={selectedUser?.role}
                 onValueChange={(value) => selectedUser && updateRole(selectedUser.id, value as "admin" | "user")}
                 disabled={saving}
               >
@@ -312,9 +380,9 @@ export default function UserManagement() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="new-password">New Password</Label>
-              <Input 
+              <Input
                 id="new-password"
-                type="password" 
+                type="password"
                 placeholder="Enter new password (min 6 characters)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -328,6 +396,64 @@ export default function UserManagement() {
             </Button>
             <Button onClick={updatePassword} disabled={saving || newPassword.length < 6}>
               {saving ? "Resetting..." : "Reset Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Permissions Dialog */}
+      <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] flex flex-col p-4 sm:p-6">
+          <DialogHeader className="pb-2">
+            <DialogTitle>Manage Permissions</DialogTitle>
+            <DialogDescription>
+              Set access levels for {selectedUser?.name}. Changes apply immediately after saving.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto min-h-0 pr-1 -mr-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 mr-2">
+              {userPermissions.map((perm) => {
+                const descriptions: Record<string, string> = {
+                  'dashboard': 'Main dashboard',
+                  'add-booking': 'Create bookings',
+                  'bookings': 'Manage bookings',
+                  'programs': 'Manage programs',
+                  'booking-links': 'Booking links',
+                  'reports': 'View reports',
+                  'settings': 'App settings',
+                  'user-management': 'Manage users',
+                  'edit-financial-details': 'Edit bill details',
+                  'revert-financial-status': 'Revert status'
+                };
+
+                return (
+                  <div key={perm.page} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors h-full">
+                    <div className="space-y-0.5 flex-1 w-full sm:mr-2">
+                      <Label className="text-xs sm:text-sm font-semibold cursor-pointer block leading-tight break-words" htmlFor={`perm-${perm.page}`}>
+                        {formatPermissionName(perm.page)}
+                      </Label>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight hidden sm:block">
+                        {descriptions[perm.page] || 'Manage access'}
+                      </p>
+                    </div>
+                    <Switch
+                      id={`perm-${perm.page}`}
+                      checked={perm.can_access}
+                      onCheckedChange={() => togglePermission(perm.page)}
+                      disabled={saving}
+                      className="mt-1 sm:mt-0 scale-75 sm:scale-100 self-end sm:self-auto"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <DialogFooter className="mt-2 pt-2 border-t flex-row justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowPermissionsDialog(false)} disabled={saving} className="h-8">
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleUpdatePermissions} disabled={saving} className="h-8">
+              {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -355,9 +481,9 @@ export default function UserManagement() {
                   <Camera className="h-4 w-4" />
                   <span>Choose Photo</span>
                 </div>
-                <Input 
+                <Input
                   id="photo-upload"
-                  type="file" 
+                  type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handlePhotoUpload}

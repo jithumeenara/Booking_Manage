@@ -19,6 +19,7 @@ import { getCurrentFinancialYear, cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { Pencil } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const FinancialTrack = () => {
   const [completedBookings, setCompletedBookings] = useState<Booking[]>([]);
@@ -31,7 +32,7 @@ const FinancialTrack = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | undefined>();
   const [activeTab, setActiveTab] = useState("pending-bills");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, hasPermission } = usePermissions();
   const tabsRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
@@ -45,22 +46,9 @@ const FinancialTrack = () => {
 
   useEffect(() => {
     fetchCompletedBookings();
-    fetchUserRole();
     const interval = setInterval(fetchCompletedBookings, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const fetchUserRole = async () => {
-    try {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
-      if (res.ok) {
-        const user = await res.json();
-        setIsAdmin(user.role === 'admin');
-      }
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-    }
-  };
 
   const fetchCompletedBookings = async () => {
     try {
@@ -408,7 +396,7 @@ const FinancialTrack = () => {
                                 </div>
                               </div>
                               <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
-                                {isAdmin && (
+                                {(isAdmin || hasPermission('revert-financial-status')) && (
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -527,7 +515,7 @@ const FinancialTrack = () => {
                                   >
                                     Mark Payment Completed
                                   </Button>
-                                  {isAdmin && (
+                                  {(isAdmin || hasPermission('edit-financial-details')) && (
                                     <>
                                       <Button
                                         variant="outline"
@@ -589,7 +577,7 @@ const FinancialTrack = () => {
                                 </div>
                               </div>
                               <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
-                                {isAdmin && (
+                                {(isAdmin || hasPermission('revert-financial-status')) && (
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -699,7 +687,7 @@ const FinancialTrack = () => {
                                     </div>
                                   )}
                                 </div>
-                                {isAdmin && (
+                                {(isAdmin || hasPermission('edit-financial-details')) && (
                                   <div className="flex flex-col sm:flex-row gap-2">
                                     <Button
                                       variant="outline"

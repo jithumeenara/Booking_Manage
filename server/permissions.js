@@ -10,7 +10,9 @@ export const AVAILABLE_PAGES = [
     'booking-links',
     'reports',
     'settings',
-    'user-management'
+    'user-management',
+    'edit-financial-details',
+    'revert-financial-status'
 ];
 
 // Get user permissions

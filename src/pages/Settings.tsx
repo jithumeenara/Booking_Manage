@@ -1809,8 +1809,8 @@ export default function Settings() {
 
       {/* Permissions Management Dialog */}
       <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] flex flex-col p-4 sm:p-6">
+          <DialogHeader className="pb-2">
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
               Manage Page Permissions
@@ -1819,52 +1819,54 @@ export default function Settings() {
               Control which pages {selectedUser?.name} can access. Administrators always have full access.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-3">
+          <div className="flex-1 overflow-y-auto min-h-0 pr-1 -mr-2">
             {selectedUserPermissions.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">Loading permissions...</p>
             ) : (
-              selectedUserPermissions.map((perm) => (
-                <div
-                  key={perm.page}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium capitalize">
-                      {perm.page.replace('-', ' ')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {perm.page === 'dashboard' && 'Main dashboard and overview'}
-                      {perm.page === 'add-booking' && 'Access to create new bookings'}
-                      {perm.page === 'bookings' && 'View and manage bookings'}
-                      {perm.page === 'programs' && 'View and manage training programs'}
-                      {perm.page === 'booking-links' && 'Create and manage booking links'}
-                      {perm.page === 'reports' && 'View reports and analytics'}
-                      {perm.page === 'settings' && 'Application settings'}
-                      {perm.page === 'user-management' && 'Manage users (admin only)'}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={perm.can_access}
-                    onCheckedChange={() => togglePermission(perm.page)}
-                    disabled={saving}
-                  />
-                </div>
-              ))
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 mr-2">
+                {selectedUserPermissions.map((perm) => {
+                  const descriptions: Record<string, string> = {
+                    'dashboard': 'Main dashboard',
+                    'add-booking': 'Create bookings',
+                    'bookings': 'Manage bookings',
+                    'programs': 'Manage programs',
+                    'booking-links': 'Booking links',
+                    'reports': 'View reports',
+                    'settings': 'App settings',
+                    'user-management': 'Manage users',
+                    'edit-financial-details': 'Edit bill details',
+                    'revert-financial-status': 'Revert status'
+                  };
+
+                  return (
+                    <div key={perm.page} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors h-full">
+                      <div className="space-y-0.5 flex-1 w-full sm:mr-2">
+                        <Label className="text-xs sm:text-sm font-semibold cursor-pointer block leading-tight break-words capitalize" htmlFor={`perm-${perm.page}`}>
+                          {perm.page.replace(/-/g, ' ')}
+                        </Label>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight hidden sm:block">
+                          {descriptions[perm.page] || 'Manage access'}
+                        </p>
+                      </div>
+                      <Switch
+                        id={`perm-${perm.page}`}
+                        checked={perm.can_access}
+                        onCheckedChange={() => togglePermission(perm.page)}
+                        disabled={saving}
+                        className="mt-1 sm:mt-0 scale-75 sm:scale-100 self-end sm:self-auto"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPermissionsDialog(false)}
-              disabled={saving}
-            >
+          <DialogFooter className="mt-2 pt-2 border-t flex-row justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowPermissionsDialog(false)} disabled={saving} className="h-8">
               Cancel
             </Button>
-            <Button
-              onClick={savePermissions}
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Save Permissions"}
+            <Button onClick={savePermissions} disabled={saving} size="sm" className="h-8">
+              {saving ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
