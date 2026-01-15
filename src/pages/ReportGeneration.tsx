@@ -11,11 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Download, Filter, Calendar as CalendarIcon, CalendarDays, Users, IndianRupee } from "lucide-react";
+import { Download, Filter, Calendar as CalendarIcon, CalendarDays, Users, IndianRupee, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
 import { getCurrentFinancialYear, cn } from "@/lib/utils";
 import { PrintReport } from "@/components/PrintReport";
 import { PrintFinancialReport } from "@/components/PrintFinancialReport";
 import { formatCurrency, calculateRevenue } from "@/lib/formatCurrency";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 // Helper function to get status class name
 function getStatusClassName(status: string | undefined): string {
@@ -63,6 +65,12 @@ const ReportGeneration = () => {
   const [finPaymentStatus, setFinPaymentStatus] = useState<string>("all");
   const [finSelectedFinancialYear, setFinSelectedFinancialYear] = useState<string>("all");
 
+  // Sorting State
+  const [sortBy, setSortBy] = useState<"date" | "booking">("date");
+  const [finSortBy, setFinSortBy] = useState<"date" | "booking">("date");
+
+
+
   useEffect(() => {
     fetchBookings();
   }, []);
@@ -105,6 +113,19 @@ const ReportGeneration = () => {
     if (pendingPaymentOnly && booking.status !== 'payment_pending') return false;
     return true;
   });
+
+  // Sort Filtered Bookings for Programme Report
+  const sortedBookings = [...filteredBookings].sort((a, b) => {
+    if (sortBy === 'date') {
+      return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+    }
+    // Sort by Booking (created_at)
+    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return dateA - dateB;
+  });
+
+
 
   const resetPrintView = () => {
     setSelectedDepartment("all");
@@ -183,6 +204,20 @@ const ReportGeneration = () => {
     }
 
     return true;
+  });
+
+  // Sort Financial Bookings
+  const sortedFinancialBookings = [...filteredFinancialBookings].sort((a, b) => {
+    if (finSortBy === 'date') {
+      // Use billed_date if available, else start_date
+      const dateA = a.billed_date ? new Date(a.billed_date).getTime() : new Date(a.start_date).getTime();
+      const dateB = b.billed_date ? new Date(b.billed_date).getTime() : new Date(b.start_date).getTime();
+      return dateA - dateB;
+    }
+    // Sort by Booking (created_at)
+    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return dateA - dateB;
   });
 
   const exportToCSV = () => {
@@ -614,10 +649,24 @@ const ReportGeneration = () => {
                   <p className="text-sm text-muted-foreground mt-3">
                     Choose which section to display in the printable report
                   </p>
+
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Sort By</h4>
+                    <RadioGroup value={sortBy} onValueChange={(v) => setSortBy(v as "date" | "booking")} className="flex gap-6">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="date" id="sort-date" />
+                        <Label htmlFor="sort-date">Programme Date</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="booking" id="sort-booking" />
+                        <Label htmlFor="sort-booking">Booking Date</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
                 </div>
 
                 <PrintReport
-                  bookings={filteredBookings}
+                  bookings={sortedBookings}
                   selectedDepartment={selectedDepartment}
                   selectedFinancialYear={selectedFinancialYear}
                   selectedMonth={selectedMonth}
@@ -750,10 +799,24 @@ const ReportGeneration = () => {
                       <Button variant="ghost" onClick={resetFinancialView}>Clear</Button>
                     </div>
                   </div>
+
+                  <div className="mt-4 border-t pt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Sort By</h4>
+                    <RadioGroup value={finSortBy} onValueChange={(v) => setFinSortBy(v as "date" | "booking")} className="flex gap-6">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="date" id="fin-sort-date" />
+                        <Label htmlFor="fin-sort-date">Bill/Event Date</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="booking" id="fin-sort-booking" />
+                        <Label htmlFor="fin-sort-booking">Booking Date</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
                 </div>
 
                 <PrintFinancialReport
-                  bookings={filteredFinancialBookings}
+                  bookings={sortedFinancialBookings}
                   selectedFinancialYear={finSelectedFinancialYear}
                   selectedMonth={finSelectedMonth}
                   fromDate={finFromDate}
