@@ -478,7 +478,7 @@ const ManageBookings = () => {
                               </Link>
                             )}
                             {booking.status === 'pending' && <Badge variant="secondary">Pending</Badge>}
-                            {booking.needs_training_hall && (
+                            {!!booking.needs_training_hall && (
                               <div className="mt-1">
                                 {booking.allocated_halls && booking.allocated_halls.length > 0 && Array.isArray(booking.allocated_halls) && booking.allocated_halls[0] && booking.allocated_halls[0].id ? (
                                   <div className="flex flex-wrap gap-1">
@@ -492,7 +492,7 @@ const ManageBookings = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              {booking.needs_training_hall && booking.status === 'pending' && (
+                              {!!booking.needs_training_hall && booking.status === 'pending' && (
                                 <Button variant="ghost" size="sm" onClick={() => handleAllocate(booking)} title="Allocate Hall">
                                   <Building className="h-4 w-4" />
                                 </Button>
