@@ -875,7 +875,10 @@ function BookingAllocationDialog({ open, onOpenChange, booking, onAllocated }: {
                 onClick={() => !isOccupied && !isAllocated && handleAllocate(hall.id)}
               >
                 <div className="flex justify-between items-start">
-                  <span className={cn("font-semibold text-sm truncate", isAllocated ? "text-green-800" : "")}>{hall.name}</span>
+                  <div className="flex flex-col">
+                    <span className={cn("font-semibold text-sm truncate", isAllocated ? "text-green-800" : "")}>{hall.name}</span>
+                    {hall.hall_sub_name && <span className="text-xs text-muted-foreground">{hall.hall_sub_name}</span>}
+                  </div>
                   {isAllocated && (
                     <Badge className="bg-green-200 text-green-800 hover:bg-green-200 h-5 text-[10px] px-1.5 shadow-none border-green-300">
                       Allocated
