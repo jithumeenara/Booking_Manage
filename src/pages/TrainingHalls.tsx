@@ -80,10 +80,17 @@ export default function TrainingHalls() {
     const loadData = async () => {
         setLoading(true);
         try {
+            // Use local date for "Today" to handle timezone differences
+            const localDate = new Date();
+            const year = localDate.getFullYear();
+            const month = String(localDate.getMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+
             const [hallsRes, floorsRes, todayRes] = await Promise.all([
                 fetch("/api/training-halls"),
                 fetch("/api/floors"),
-                fetch("/api/bookings/today-allocations")
+                fetch(`/api/bookings/today-allocations?date=${dateStr}`)
             ]);
 
             if (hallsRes.ok && floorsRes.ok) {
@@ -340,17 +347,21 @@ export default function TrainingHalls() {
                                                                 {floor.name}
                                                             </div>
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                                                                {halls.map(hall => (
-                                                                    <TrainingHallCard
-                                                                        key={hall.id}
-                                                                        hall={hall}
-                                                                        onEdit={handleOpenDialog}
-                                                                        onDelete={handleDelete}
-                                                                        onToggle={toggleStatus}
-                                                                        onViewDetails={() => setViewingHall(hall)}
-                                                                        permissions={permissions}
-                                                                    />
-                                                                ))}
+                                                                {halls.map(hall => {
+                                                                    const isOccupied = todayAllocations.some(a => a.hall_id === hall.id);
+                                                                    return (
+                                                                        <TrainingHallCard
+                                                                            key={hall.id}
+                                                                            hall={hall}
+                                                                            onEdit={handleOpenDialog}
+                                                                            onDelete={handleDelete}
+                                                                            onToggle={toggleStatus}
+                                                                            onViewDetails={() => setViewingHall(hall)}
+                                                                            permissions={permissions}
+                                                                            isOccupied={isOccupied}
+                                                                        />
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </section>
                                                     )
@@ -363,17 +374,21 @@ export default function TrainingHalls() {
                                                             Other / Unassigned
                                                         </div>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                                                            {unassignedHalls.map(hall => (
-                                                                <TrainingHallCard
-                                                                    key={hall.id}
-                                                                    hall={hall}
-                                                                    onEdit={handleOpenDialog}
-                                                                    onDelete={handleDelete}
-                                                                    onToggle={toggleStatus}
-                                                                    onViewDetails={() => setViewingHall(hall)}
-                                                                    permissions={permissions}
-                                                                />
-                                                            ))}
+                                                            {unassignedHalls.map(hall => {
+                                                                const isOccupied = todayAllocations.some(a => a.hall_id === hall.id);
+                                                                return (
+                                                                    <TrainingHallCard
+                                                                        key={hall.id}
+                                                                        hall={hall}
+                                                                        onEdit={handleOpenDialog}
+                                                                        onDelete={handleDelete}
+                                                                        onToggle={toggleStatus}
+                                                                        onViewDetails={() => setViewingHall(hall)}
+                                                                        permissions={permissions}
+                                                                        isOccupied={isOccupied}
+                                                                    />
+                                                                );
+                                                            })}
                                                         </div>
                                                     </section>
                                                 )}
@@ -496,17 +511,21 @@ function ActivityIcon(props: any) {
     )
 }
 
-function TrainingHallCard({ hall, onEdit, onDelete, onToggle, onViewDetails, permissions }: {
+function TrainingHallCard({ hall, onEdit, onDelete, onToggle, onViewDetails, permissions, isOccupied }: {
     hall: TrainingHall,
     onEdit: (h: TrainingHall) => void,
     onDelete: (id: string) => void,
     onToggle: (h: TrainingHall) => void,
     onViewDetails: () => void,
-    permissions: { canAdd: boolean, canEdit: boolean, canDelete: boolean }
+    permissions: { canAdd: boolean, canEdit: boolean, canDelete: boolean },
+    isOccupied?: boolean
 }) {
     return (
         <Card
-            className="transition-all hover:shadow-md group flex flex-col justify-between h-full cursor-pointer relative overflow-hidden"
+            className={cn(
+                "transition-all hover:shadow-md group flex flex-col justify-between h-full cursor-pointer relative overflow-hidden",
+                isOccupied && "border-l-4 border-l-red-500/50"
+            )}
             onClick={(e) => {
                 if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('[role="switch"]')) return;
                 onViewDetails();
@@ -516,8 +535,15 @@ function TrainingHallCard({ hall, onEdit, onDelete, onToggle, onViewDetails, per
 
             <div className="p-3 pl-5 space-y-2">
                 <div className="flex justify-between items-start">
-                    <div>
-                        <h3 className="font-semibold text-sm leading-tight">{hall.name}</h3>
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-sm leading-tight">{hall.name}</h3>
+                            {isOccupied && (
+                                <Badge variant="outline" className="text-[10px] bg-red-50 text-red-600 border-red-200 ml-2 shrink-0 h-5 px-1.5">
+                                    Booked
+                                </Badge>
+                            )}
+                        </div>
                         <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{hall.code}</p>
                     </div>
                     {/* Minimal actions */}

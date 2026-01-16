@@ -528,9 +528,11 @@ export async function allocateHallToBooking(req, res) {
 // Get active bookings for today with allocated halls
 export async function getTodayAllocations(req, res) {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD local approx
+    const { date } = req.query;
+    // Use client provided date or fallback to server time (YYYY-MM-DD)
+    const queryDate = date || new Date().toISOString().split('T')[0];
 
-    // We want bookings where today is BETWEEN start_date AND end_date
+    // We want bookings where the target date is BETWEEN start_date AND end_date
     // AND they have allocated halls
     const query = `
       SELECT 
@@ -539,11 +541,11 @@ export async function getTodayAllocations(req, res) {
       FROM bookings b
       JOIN booking_halls bh ON b.id = bh.booking_id
       JOIN training_halls th ON bh.hall_id = th.id
-      WHERE DATE(b.start_date) <= CURDATE() AND DATE(b.end_date) >= CURDATE()
+      WHERE DATE(b.start_date) <= DATE(?) AND DATE(b.end_date) >= DATE(?)
       ORDER BY th.floor, th.name
     `;
 
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [queryDate, queryDate]);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching today allocations:', error);
