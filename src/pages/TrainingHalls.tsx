@@ -75,6 +75,14 @@ export default function TrainingHalls() {
 
     useEffect(() => {
         loadData();
+
+        // Refresh data when window gains focus
+        const handleFocus = () => {
+            loadData();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
     }, []);
 
     const loadData = async () => {
@@ -87,10 +95,11 @@ export default function TrainingHalls() {
             const day = String(localDate.getDate()).padStart(2, '0');
             const dateStr = `${year}-${month}-${day}`;
 
+            const headers = { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' };
             const [hallsRes, floorsRes, todayRes] = await Promise.all([
-                fetch("/api/training-halls"),
-                fetch("/api/floors"),
-                fetch(`/api/bookings/today-allocations?date=${dateStr}`)
+                fetch("/api/training-halls", { headers }),
+                fetch("/api/floors", { headers }),
+                fetch(`/api/bookings/today-allocations?date=${dateStr}`, { headers })
             ]);
 
             if (hallsRes.ok && floorsRes.ok) {
