@@ -70,6 +70,16 @@ app.post('/api/auth/login', login);
 app.post('/api/auth/logout', logout);
 app.get('/api/auth/me', me);
 
+// Health check / Version
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    version: '2.0.0',
+    features: ['split_bill_support'],
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Booking routes
 app.get('/api/bookings', getBookings);
 app.get('/api/bookings/today-allocations', getTodayAllocations);

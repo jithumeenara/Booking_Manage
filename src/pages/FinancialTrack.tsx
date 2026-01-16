@@ -536,9 +536,19 @@ const FinancialTrack = () => {
                             ) : (
                               <>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                                      <span>Base:</span>
+                                      <span>{formatCurrency(booking.bill_base_amount || 0)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                                      <span>GST:</span>
+                                      <span>{formatCurrency(booking.bill_gst_amount || 0)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                                      <span className="font-semibold">{formatCurrency(booking.total_bill_amount)}</span>
+                                    </div>
                                   </div>
                                   {booking.bill_no && (
                                     <div className="flex items-center gap-2">
