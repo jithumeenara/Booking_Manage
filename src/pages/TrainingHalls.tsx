@@ -236,15 +236,27 @@ export default function TrainingHalls() {
         }
     };
 
-    // Group halls by floor
+    // Helper for natural sorting (e.g., A1, A2, ... A10)
+    // Helper for natural sorting (e.g., A1, A2, ... A10)
+    const naturalSort = (a: TrainingHall, b: TrainingHall) => {
+        const valA = a.code || a.name || "";
+        const valB = b.code || b.name || "";
+        return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+    };
+
+    // Group halls by floor and sort them
     const groupedHalls = floors.map(floor => ({
         floor,
-        halls: halls.filter(h => h.floor === floor.name)
+        halls: halls
+            .filter(h => h.floor === floor.name)
+            .sort(naturalSort)
     }));
 
-    // Find halls not in any known floor
+    // Find halls not in any known floor and sort them
     const knownFloorNames = new Set(floors.map(f => f.name));
-    const unassignedHalls = halls.filter(h => !h.floor || !knownFloorNames.has(h.floor));
+    const unassignedHalls = halls
+        .filter(h => !h.floor || !knownFloorNames.has(h.floor))
+        .sort(naturalSort);
 
     return (
         <SidebarProvider defaultOpen={true}>

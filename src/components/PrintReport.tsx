@@ -95,16 +95,18 @@ export const PrintReport = ({
         <div className="overflow-hidden rounded-xl border-2 border-gray-300 shadow-sm">
           <table className="w-full border-collapse bg-white" style={{ tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: '30%' }} />
               <col style={{ width: '25%' }} />
-              <col style={{ width: '30%' }} />
-              <col style={{ width: '15%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '10%' }} />
             </colgroup>
             <thead>
               <tr className="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
                 <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Department/Agency</th>
                 <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Contact Person</th>
                 <th className="border-r border-gray-300 px-3 py-3 text-center font-extrabold text-sm text-black">Programme Dates</th>
+                <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Training Hall</th>
                 <th className="px-3 py-3 text-center font-bold text-sm text-gray-800">Participants</th>
               </tr>
             </thead>
@@ -118,6 +120,15 @@ export const PrintReport = ({
                   </td>
                   <td className="border-r border-gray-200 px-3 py-2.5 text-xs text-center text-gray-700">
                     {format(new Date(booking.start_date), "MMM dd")} - {format(new Date(booking.end_date), "MMM dd, yyyy")}
+                  </td>
+                  <td className="border-r border-gray-200 px-3 py-2.5 text-xs text-center text-gray-700 font-medium">
+                    {booking.allocated_halls && booking.allocated_halls.length > 0 ? (
+                      booking.allocated_halls.map((h: any) => h.name || h.code).join(', ')
+                    ) : !booking.needs_training_hall ? (
+                      <span className="text-gray-400 italic">Not Needed</span>
+                    ) : (
+                      <span className="text-gray-400 italic">Not Allocated</span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-sm text-center font-bold text-primary">{booking.num_participants}</td>
                 </tr>
