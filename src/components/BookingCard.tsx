@@ -39,6 +39,8 @@ export interface Booking {
   num_of_bills?: number;
   booked_via_link?: boolean;
   allocated_halls?: { id: string; name: string; code: string }[];
+  bill_base_amount?: number;
+  bill_gst_amount?: number;
 }
 
 interface BookingCardProps {

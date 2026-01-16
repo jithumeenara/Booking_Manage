@@ -379,10 +379,11 @@ export async function updateBooking(req, res) {
     console.log('[DEBUG] Updates:', JSON.stringify(updates));
 
     const allowed = new Set([
-      'department_agency', 'contact_person_name', 'contact_person_email', 'contact_person_phone',
+      'contact_person_name', 'contact_person_email', 'contact_person_phone',
       'start_date', 'end_date', 'num_participants', 'needs_accommodation', 'needs_food',
       'needs_training_hall', 'number_of_halls', 'purpose', 'status', 'total_bill_amount',
-      'completed_at', 'financial_year', 'bill_no', 'billed_date', 'num_of_bills', 'hall_ids' // Added hall_ids
+      'completed_at', 'financial_year', 'bill_no', 'billed_date', 'num_of_bills', 'hall_ids',
+      'bill_base_amount', 'bill_gst_amount' // Added split bill fields
     ]);
     const fields = Object.keys(updates).filter(k => allowed.has(k) && k !== 'hall_ids'); // Filter out hall_ids from main update
     if (!fields.length) return res.status(400).json({ error: 'No valid fields to update' });

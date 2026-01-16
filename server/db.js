@@ -85,7 +85,9 @@ export async function ensureSchema() {
         bill_no TEXT,
         billed_date TIMESTAMP NULL,
         num_of_bills INT DEFAULT 1,
-        booked_via_link BOOLEAN NOT NULL DEFAULT FALSE
+        booked_via_link BOOLEAN NOT NULL DEFAULT FALSE,
+        bill_base_amount DECIMAL(10,2) DEFAULT 0,
+        bill_gst_amount DECIMAL(10,2) DEFAULT 0
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 

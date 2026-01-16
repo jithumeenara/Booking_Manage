@@ -25,7 +25,11 @@ const FinancialTrack = () => {
   const [completedBookings, setCompletedBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [billAmount, setBillAmount] = useState("");
+
+  // Split bill amount state
+  const [baseAmount, setBaseAmount] = useState("");
+  const [gstAmount, setGstAmount] = useState("");
+
   const [billNo, setBillNo] = useState("");
   const [billedDate, setBilledDate] = useState("");
   const [numOfBills, setNumOfBills] = useState("1");
@@ -82,10 +86,12 @@ const FinancialTrack = () => {
   };
 
   const handleUpdateBillAmount = async (bookingId: string) => {
-    const amount = parseFloat(billAmount);
+    const base = parseFloat(baseAmount) || 0;
+    const gst = parseFloat(gstAmount) || 0;
+    const totalAmount = base + gst;
     const bills = parseInt(numOfBills);
 
-    if (isNaN(amount) || amount <= 0) {
+    if (totalAmount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
@@ -106,7 +112,9 @@ const FinancialTrack = () => {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          total_bill_amount: amount,
+          total_bill_amount: totalAmount,
+          bill_base_amount: base,
+          bill_gst_amount: gst,
           bill_no: billNo,
           billed_date: billedDate,
           num_of_bills: bills,
@@ -119,7 +127,8 @@ const FinancialTrack = () => {
       }
       toast.success("Bill details updated and moved to Payment Pending");
       setEditingId(null);
-      setBillAmount("");
+      setBaseAmount("");
+      setGstAmount("");
       setBillNo("");
       setBilledDate("");
       setNumOfBills("1");
@@ -186,6 +195,28 @@ const FinancialTrack = () => {
         setActiveTab(tabs[currentIndex - 1]);
       }
     }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setBaseAmount("");
+    setGstAmount("");
+    setBillNo("");
+    setBilledDate("");
+    setNumOfBills("1");
+  };
+
+  const initializeForm = (booking: Booking) => {
+    setEditingId(booking.id);
+    // Initialize with split amounts if they exist, otherwise fallback to total as base
+    const base = booking.bill_base_amount !== undefined ? booking.bill_base_amount : booking.total_bill_amount;
+    const gst = booking.bill_gst_amount !== undefined ? booking.bill_gst_amount : 0;
+
+    setBaseAmount(base?.toString() || "");
+    setGstAmount(gst?.toString() || "");
+    setBillNo(booking.bill_no || "");
+    setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
+    setNumOfBills(booking.num_of_bills?.toString() || "1");
   };
 
   if (loading) {
@@ -293,17 +324,37 @@ const FinancialTrack = () => {
                           <CardContent className="space-y-4">
                             {editingId === booking.id ? (
                               <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`base-amount-${booking.id}`}>Base Amount (₹)</Label>
+                                    <Input
+                                      id={`base-amount-${booking.id}`}
+                                      type="number"
+                                      value={baseAmount}
+                                      onChange={(e) => setBaseAmount(e.target.value)}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`gst-amount-${booking.id}`}>GST Amount (₹)</Label>
+                                    <Input
+                                      id={`gst-amount-${booking.id}`}
+                                      type="number"
+                                      value={gstAmount}
+                                      onChange={(e) => setGstAmount(e.target.value)}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                </div>
                                 <div className="space-y-2">
-                                  <Label htmlFor={`bill-amount-${booking.id}`}>Total Bill Amount (₹)</Label>
-                                  <Input
-                                    id={`bill-amount-${booking.id}`}
-                                    type="number"
-                                    value={billAmount}
-                                    onChange={(e) => setBillAmount(e.target.value)}
-                                    placeholder="Enter amount"
-                                    min="0"
-                                    step="0.01"
-                                  />
+                                  <Label>Net Amount (₹)</Label>
+                                  <div className="p-2 bg-muted/50 rounded-md font-mono font-bold text-lg">
+                                    {formatCurrency((parseFloat(baseAmount) || 0) + (parseFloat(gstAmount) || 0))}
+                                  </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -341,23 +392,11 @@ const FinancialTrack = () => {
 
                                 <div className="flex flex-col sm:flex-row gap-2">
                                   <Button onClick={() => handleUpdateBillAmount(booking.id)} className="w-full sm:w-auto">Save Bill Details</Button>
-                                  <Button variant="outline" onClick={() => {
-                                    setEditingId(null);
-                                    setBillAmount("");
-                                    setBillNo("");
-                                    setBilledDate("");
-                                    setNumOfBills("1");
-                                  }} className="w-full sm:w-auto">Cancel</Button>
+                                  <Button variant="outline" onClick={resetForm} className="w-full sm:w-auto">Cancel</Button>
                                 </div>
                               </div>
                             ) : (
-                              <Button variant="outline" size="sm" onClick={() => {
-                                setEditingId(booking.id);
-                                setBillAmount(booking.total_bill_amount?.toString() || "");
-                                setBillNo(booking.bill_no || "");
-                                setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
-                                setNumOfBills(booking.num_of_bills?.toString() || "1");
-                              }}>
+                              <Button variant="outline" size="sm" onClick={() => initializeForm(booking)}>
                                 Set Bill Details
                               </Button>
                             )}
@@ -423,17 +462,37 @@ const FinancialTrack = () => {
                           <CardContent className="space-y-4">
                             {editingId === booking.id ? (
                               <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`base-amount-${booking.id}`}>Base Amount (₹)</Label>
+                                    <Input
+                                      id={`base-amount-${booking.id}`}
+                                      type="number"
+                                      value={baseAmount}
+                                      onChange={(e) => setBaseAmount(e.target.value)}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`gst-amount-${booking.id}`}>GST Amount (₹)</Label>
+                                    <Input
+                                      id={`gst-amount-${booking.id}`}
+                                      type="number"
+                                      value={gstAmount}
+                                      onChange={(e) => setGstAmount(e.target.value)}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                </div>
                                 <div className="space-y-2">
-                                  <Label htmlFor={`bill-amount-${booking.id}`}>Total Bill Amount (₹)</Label>
-                                  <Input
-                                    id={`bill-amount-${booking.id}`}
-                                    type="number"
-                                    value={billAmount}
-                                    onChange={(e) => setBillAmount(e.target.value)}
-                                    placeholder="Enter amount"
-                                    min="0"
-                                    step="0.01"
-                                  />
+                                  <Label>Net Amount (₹)</Label>
+                                  <div className="p-2 bg-muted/50 rounded-md font-mono font-bold text-lg">
+                                    {formatCurrency((parseFloat(baseAmount) || 0) + (parseFloat(gstAmount) || 0))}
+                                  </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -471,13 +530,7 @@ const FinancialTrack = () => {
 
                                 <div className="flex flex-col sm:flex-row gap-2">
                                   <Button onClick={() => handleUpdateBillAmount(booking.id)} className="w-full sm:w-auto">Save Bill Details</Button>
-                                  <Button variant="outline" onClick={() => {
-                                    setEditingId(null);
-                                    setBillAmount("");
-                                    setBillNo("");
-                                    setBilledDate("");
-                                    setNumOfBills("1");
-                                  }} className="w-full sm:w-auto">Cancel</Button>
+                                  <Button variant="outline" onClick={resetForm} className="w-full sm:w-auto">Cancel</Button>
                                 </div>
                               </div>
                             ) : (
@@ -520,13 +573,7 @@ const FinancialTrack = () => {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => {
-                                          setEditingId(booking.id);
-                                          setBillAmount(booking.total_bill_amount?.toString() || "");
-                                          setBillNo(booking.bill_no || "");
-                                          setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
-                                          setNumOfBills(booking.num_of_bills?.toString() || "1");
-                                        }}
+                                        onClick={() => initializeForm(booking)}
                                       >
                                         <Pencil className="h-4 w-4 mr-1" />
                                         Edit Bill
@@ -604,17 +651,37 @@ const FinancialTrack = () => {
                           <CardContent className="space-y-4">
                             {editingId === booking.id ? (
                               <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`base-amount-${booking.id}`}>Base Amount (₹)</Label>
+                                    <Input
+                                      id={`base-amount-${booking.id}`}
+                                      type="number"
+                                      value={baseAmount}
+                                      onChange={(e) => setBaseAmount(e.target.value)}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`gst-amount-${booking.id}`}>GST Amount (₹)</Label>
+                                    <Input
+                                      id={`gst-amount-${booking.id}`}
+                                      type="number"
+                                      value={gstAmount}
+                                      onChange={(e) => setGstAmount(e.target.value)}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                </div>
                                 <div className="space-y-2">
-                                  <Label htmlFor={`bill-amount-${booking.id}`}>Total Bill Amount (₹)</Label>
-                                  <Input
-                                    id={`bill-amount-${booking.id}`}
-                                    type="number"
-                                    value={billAmount}
-                                    onChange={(e) => setBillAmount(e.target.value)}
-                                    placeholder="Enter amount"
-                                    min="0"
-                                    step="0.01"
-                                  />
+                                  <Label>Net Amount (₹)</Label>
+                                  <div className="p-2 bg-muted/50 rounded-md font-mono font-bold text-lg">
+                                    {formatCurrency((parseFloat(baseAmount) || 0) + (parseFloat(gstAmount) || 0))}
+                                  </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -652,13 +719,7 @@ const FinancialTrack = () => {
 
                                 <div className="flex flex-col sm:flex-row gap-2">
                                   <Button onClick={() => handleUpdateBillAmount(booking.id)} className="w-full sm:w-auto">Save Bill Details</Button>
-                                  <Button variant="outline" onClick={() => {
-                                    setEditingId(null);
-                                    setBillAmount("");
-                                    setBillNo("");
-                                    setBilledDate("");
-                                    setNumOfBills("1");
-                                  }} className="w-full sm:w-auto">Cancel</Button>
+                                  <Button variant="outline" onClick={resetForm} className="w-full sm:w-auto">Cancel</Button>
                                 </div>
                               </div>
                             ) : (
@@ -692,13 +753,7 @@ const FinancialTrack = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => {
-                                        setEditingId(booking.id);
-                                        setBillAmount(booking.total_bill_amount?.toString() || "");
-                                        setBillNo(booking.bill_no || "");
-                                        setBilledDate(booking.billed_date ? format(new Date(booking.billed_date), "yyyy-MM-dd") : "");
-                                        setNumOfBills(booking.num_of_bills?.toString() || "1");
-                                      }}
+                                      onClick={() => initializeForm(booking)}
                                     >
                                       <Pencil className="h-4 w-4 mr-1" />
                                       Edit Bill
