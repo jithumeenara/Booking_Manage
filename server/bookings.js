@@ -379,6 +379,7 @@ export async function updateBooking(req, res) {
     console.log('[DEBUG] Updates:', JSON.stringify(updates));
 
     const allowed = new Set([
+      'department_agency', // Added missing field
       'contact_person_name', 'contact_person_email', 'contact_person_phone',
       'start_date', 'end_date', 'num_participants', 'needs_accommodation', 'needs_food',
       'needs_training_hall', 'number_of_halls', 'purpose', 'status', 'total_bill_amount',

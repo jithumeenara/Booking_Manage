@@ -65,19 +65,20 @@ const ManageBookings = () => {
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/bookings");
-      if (res.ok) {
-        const data = await res.json();
-        setBookings(data);
+      const res = await fetch(`/api/bookings?t=${Date.now()}`);
+      if (!res.ok) {
+        throw new Error("Failed to fetch bookings");
+      }
+      const data = await res.json();
+      console.log('Bookings fetched:', data.length); // DEBUG LOG
+      setBookings(data || []);
 
-        // Update bookingToAllocate if it exists, so the dialog reflects changes immediately
-        if (bookingToAllocate) {
-          const updatedBooking = data.find((b: Booking) => b.id === bookingToAllocate.id);
-          if (updatedBooking) {
-            setBookingToAllocate(updatedBooking);
-          }
+      // Update bookingToAllocate if it exists, so the dialog reflects changes immediately
+      if (bookingToAllocate) {
+        const updatedBooking = data.find((b: Booking) => b.id === bookingToAllocate.id);
+        if (updatedBooking) {
+          setBookingToAllocate(updatedBooking);
         }
-      } else {
         toast.error("Failed to fetch bookings");
       }
     } catch (error) {

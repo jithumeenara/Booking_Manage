@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -40,8 +40,22 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
 
 
 
+  // Track if we have already populated the form for this booking ID
+  const lastPopulatedId = useRef<string | null>(null);
+
   useEffect(() => {
-    if (booking) {
+    // If dialog is closed, reset tracker
+    if (!open) {
+      if (lastPopulatedId.current !== null) {
+        resetForm();
+        lastPopulatedId.current = null;
+      }
+      return;
+    }
+
+    // If dialog is open and we have a booking, check if we need to populate
+    if (booking && booking.id !== lastPopulatedId.current) {
+      console.log('[DEBUG] Populating form for Booking ID:', booking.id);
       setDepartmentAgency(booking.department_agency);
       setContactPersonName(booking.contact_person_name);
       setContactPersonEmail(booking.contact_person_email);
@@ -55,9 +69,9 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
       setNumberOfHalls(booking.number_of_halls || 1);
       setPurpose(booking.purpose || "");
 
-    } else {
-      resetForm();
+      lastPopulatedId.current = booking.id;
     }
+    // Note: If booking is the same ID, we DO NOT re-populate, preserving user edits.
   }, [booking, open]);
 
   const resetForm = () => {
@@ -147,15 +161,21 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
         throw new Error(data.error || 'Failed to save booking');
       }
 
+
+      // Update parent list FIRST
+      if (onBookingAdded) {
+        await onBookingAdded();
+      }
+
+      resetForm();
+      onOpenChange(false);
+
       toast.success(booking ? "Booking updated successfully!" : "Booking added successfully!", {
         action: needsTrainingHall ? {
           label: 'Allocate Halls',
           onClick: () => navigate('/training-halls')
         } : undefined
       });
-      resetForm();
-      onOpenChange(false);
-      onBookingAdded();
     } catch (error: any) {
       console.error('Error saving booking:', error);
       toast.error(error.message || 'Failed to save booking. Please try again.');
