@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useBookings, useDeleteBooking, useUpdateBooking } from "@/hooks/useBookings";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { BookingCard, Booking } from "@/components/BookingCard";
@@ -45,7 +46,16 @@ const ManageBookings = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | undefined>();
 
   // View & Filter State
+  const isMobile = useIsMobile();
+
+  // Initialize view mode based on device, or update when mobile check finishes
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode('grid');
+    }
+  }, [isMobile]);
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [selectedFinancialYear, setSelectedFinancialYear] = useState<string>("all");
@@ -72,16 +82,7 @@ const ManageBookings = () => {
 
   // ... (lines 81-567 ignored/unchanged)
 
-  {
-    bookingToAllocate && (
-      <BookingAllocationDialog
-        open={allocateDialogOpen}
-        onOpenChange={setAllocateDialogOpen}
-        booking={bookingToAllocate}
-        onAllocated={fetchBookings}
-      />
-    )
-  }
+
 
   const handleDelete = async (id: string) => {
     try {
