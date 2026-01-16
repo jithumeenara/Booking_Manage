@@ -57,6 +57,8 @@ export const PrintFinancialReport = ({
     };
 
     // Calculate totals
+    const totalBase = bookings.reduce((sum, b) => sum + (Number(b.bill_base_amount) || 0), 0);
+    const totalGST = bookings.reduce((sum, b) => sum + (Number(b.bill_gst_amount) || 0), 0);
     const totalAmount = bookings.reduce((sum, b) => sum + (Number(b.total_bill_amount) || 0), 0);
 
     return (
@@ -109,14 +111,16 @@ export const PrintFinancialReport = ({
                                     <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Bill No</th>
                                     <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Date</th>
                                     <th className="border-r border-gray-300 px-3 py-3 text-left font-bold text-sm text-gray-800">Department/Agency</th>
-                                    <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Amount</th>
+                                    <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Base Amount</th>
+                                    <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">GST</th>
+                                    <th className="border-r border-gray-300 px-3 py-3 text-center font-bold text-sm text-gray-800">Net Total</th>
                                     <th className="px-3 py-3 text-center font-bold text-sm text-gray-800">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {bookings.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-4 text-gray-500">No records found</td>
+                                        <td colSpan={7} className="text-center py-4 text-gray-500">No records found</td>
                                     </tr>
                                 ) : (
                                     bookings.map((booking, index) => (
@@ -126,6 +130,12 @@ export const PrintFinancialReport = ({
                                                 {booking.billed_date ? format(new Date(booking.billed_date), "dd/MM/yyyy") : '-'}
                                             </td>
                                             <td className="border-r border-gray-200 px-3 py-2.5 text-sm text-gray-800 font-medium">{booking.department_agency}</td>
+                                            <td className="border-r border-gray-200 px-3 py-2.5 text-sm text-right font-medium text-gray-600">
+                                                {booking.bill_base_amount ? formatCurrency(booking.bill_base_amount) : '-'}
+                                            </td>
+                                            <td className="border-r border-gray-200 px-3 py-2.5 text-sm text-right font-medium text-gray-600">
+                                                {booking.bill_gst_amount ? formatCurrency(booking.bill_gst_amount) : '-'}
+                                            </td>
                                             <td className="border-r border-gray-200 px-3 py-2.5 text-sm text-right font-bold text-gray-800">
                                                 {booking.total_bill_amount ? formatCurrency(booking.total_bill_amount) : '-'}
                                             </td>
@@ -142,6 +152,8 @@ export const PrintFinancialReport = ({
                                 )}
                                 <tr className="bg-gray-100 font-bold border-t-2 border-gray-400">
                                     <td colSpan={3} className="px-3 py-3 text-right text-gray-900">Total:</td>
+                                    <td className="px-3 py-3 text-right text-gray-900 border-r border-gray-400">{formatCurrency(totalBase)}</td>
+                                    <td className="px-3 py-3 text-right text-gray-900 border-r border-gray-400">{formatCurrency(totalGST)}</td>
                                     <td className="px-3 py-3 text-right text-gray-900 border-r border-gray-400">{formatCurrency(totalAmount)}</td>
                                     <td></td>
                                 </tr>
