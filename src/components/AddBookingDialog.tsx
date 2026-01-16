@@ -217,7 +217,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
                   id="contactPhone"
                   type="tel"
                   value={contactPersonPhone}
-                  onChange={(e) => setContactPersonPhone(e.target.value)}
+                  onChange={(e) => setContactPersonPhone(e.target.value.trim())}
                   placeholder="+91 234 567 8900"
                   className="pl-9"
                   required

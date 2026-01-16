@@ -422,6 +422,11 @@ export async function updateBooking(req, res) {
       }
     }
 
+    if (result.affectedRows === 0) {
+      console.warn(`[DEBUG] Update failed: Booking ID ${id} not found.`);
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
     // Check if we need to send a "Payment Received" notification
     if (updates.status === 'payment_completed' || updates.status === 'complete') {
       try {
