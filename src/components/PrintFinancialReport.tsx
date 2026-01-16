@@ -158,7 +158,7 @@ export const PrintFinancialReport = ({
                         </div>
                         <div className="text-right">
                             <p className="text-sm font-bold text-gray-900">Printed By: {currentUserName}</p>
-                            <p className="text-xs text-gray-600 mt-1.5">Date: {format(new Date(), "dd MMMM yyyy")}</p>
+                            <p className="text-xs text-gray-600 mt-1.5">Generated: {format(new Date(), "dd MMM yyyy, hh:mm a")}</p>
                         </div>
                     </div>
                 </div>
