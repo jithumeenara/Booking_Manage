@@ -547,7 +547,7 @@ export async function getTodayAllocations(req, res) {
     const query = `
       SELECT 
         b.id, b.department_agency, b.start_date, b.end_date, 
-        th.id AS hall_id, th.name AS hall_name, th.floor
+        th.id AS hall_id, th.name AS hall_name, th.floor, th.hall_sub_name
       FROM bookings b
       JOIN booking_halls bh ON b.id = bh.booking_id
       JOIN training_halls th ON bh.hall_id = th.id

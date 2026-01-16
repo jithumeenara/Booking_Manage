@@ -51,6 +51,7 @@ interface TodayAllocation {
     hall_id: string;
     hall_name: string;
     floor: string;
+    hall_sub_name?: string;
 }
 
 export default function TrainingHalls() {
@@ -335,7 +336,9 @@ export default function TrainingHalls() {
                                                                             {alloc.department_agency}
                                                                         </CardTitle>
                                                                         <CardDescription className="text-xs mt-1 font-mono">
-                                                                            {alloc.hall_name} ({alloc.floor || 'No Floor'})
+                                                                            {alloc.hall_name}
+                                                                            {alloc.hall_sub_name && <span className="ml-1 text-muted-foreground/80">- {alloc.hall_sub_name}</span>}
+                                                                            <span className="ml-1">({alloc.floor || 'No Floor'})</span>
                                                                         </CardDescription>
                                                                     </div>
                                                                     <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 text-[10px] px-1.5 h-5">
@@ -584,7 +587,10 @@ function TrainingHallCard({ hall, onEdit, onDelete, onToggle, onViewDetails, per
                 <div className="flex justify-between items-start">
                     <div className="flex-1">
                         <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-sm leading-tight">{hall.name}</h3>
+                            <h3 className="font-semibold text-sm leading-tight">
+                                {hall.name}
+                                {hall.hall_sub_name && <span className="ml-1 text-xs font-normal text-muted-foreground">{hall.hall_sub_name}</span>}
+                            </h3>
                             {isOccupied && (
                                 <Badge variant="outline" className="text-[10px] bg-red-50 text-red-600 border-red-200 ml-2 shrink-0 h-5 px-1.5">
                                     Booked
@@ -719,7 +725,7 @@ function AllocateHallDialog({ hall, minimal }: { hall: TrainingHall, minimal?: b
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Allocate {hall.name}</DialogTitle>
+                    <DialogTitle>Allocate {hall.name} {hall.hall_sub_name && <span className="text-muted-foreground font-normal text-base">({hall.hall_sub_name})</span>}</DialogTitle>
                     <DialogDescription>
                         Assign this training hall to an upcoming booking.
                     </DialogDescription>
@@ -826,7 +832,10 @@ function HallDetailsDialog({ hall, open, onOpenChange }: {
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Building className="h-5 w-5 text-primary" />
-                        {hall.name} - Schedule
+                        <div>
+                            {hall.name}
+                            {hall.hall_sub_name && <span className="ml-2 text-sm text-muted-foreground font-normal">{hall.hall_sub_name}</span>}
+                        </div>
                     </DialogTitle>
                     <DialogDescription>
                         Upcoming and current bookings for this hall.
