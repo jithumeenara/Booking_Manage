@@ -184,6 +184,8 @@ export async function ensureSchema() {
       floor VARCHAR(50) NULL,
       code VARCHAR(50) NOT NULL UNIQUE,
       capacity INT NOT NULL DEFAULT 0,
+      hall_sub_name VARCHAR(255),
+      hall_rent_per_day DECIMAL(10,2) DEFAULT 0,
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

@@ -25,7 +25,7 @@ export async function getTrainingHalls(req, res) {
 // Create new training hall
 export async function createTrainingHall(req, res) {
     try {
-        const { name, code, capacity, is_active } = req.body;
+        const { name, code, capacity, is_active, hall_sub_name, hall_rent_per_day } = req.body;
 
         if (!name || !code) {
             return res.status(400).json({ error: 'Name and Code are required' });
@@ -39,8 +39,8 @@ export async function createTrainingHall(req, res) {
 
         const id = uuidv4();
         await pool.query(
-            `INSERT INTO training_halls (id, name, floor, code, capacity, is_active) VALUES (?, ?, ?, ?, ?, ?)`,
-            [id, name, req.body.floor || null, code, capacity || 0, is_active !== undefined ? is_active : true]
+            `INSERT INTO training_halls (id, name, floor, code, capacity, is_active, hall_sub_name, hall_rent_per_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, name, req.body.floor || null, code, capacity || 0, is_active !== undefined ? is_active : true, hall_sub_name || null, hall_rent_per_day || 0]
         );
 
         const [newHall] = await pool.query('SELECT * FROM training_halls WHERE id = ?', [id]);
@@ -55,7 +55,7 @@ export async function createTrainingHall(req, res) {
 export async function updateTrainingHall(req, res) {
     try {
         const { id } = req.params;
-        const { name, code, capacity, is_active } = req.body;
+        const { name, code, capacity, is_active, hall_sub_name, hall_rent_per_day } = req.body;
 
         if (!name || !code) {
             return res.status(400).json({ error: 'Name and Code are required' });
@@ -68,8 +68,8 @@ export async function updateTrainingHall(req, res) {
         }
 
         await pool.query(
-            `UPDATE training_halls SET name = ?, floor = ?, code = ?, capacity = ?, is_active = ? WHERE id = ?`,
-            [name, req.body.floor || null, code, capacity || 0, is_active, id]
+            `UPDATE training_halls SET name = ?, floor = ?, code = ?, capacity = ?, is_active = ?, hall_sub_name = ?, hall_rent_per_day = ? WHERE id = ?`,
+            [name, req.body.floor || null, code, capacity || 0, is_active, hall_sub_name || null, hall_rent_per_day || 0, id]
         );
 
         const [updatedHall] = await pool.query('SELECT * FROM training_halls WHERE id = ?', [id]);

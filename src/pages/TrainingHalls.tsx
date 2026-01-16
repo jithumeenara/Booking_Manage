@@ -23,6 +23,8 @@ interface TrainingHall {
     code: string;
     capacity: number;
     is_active: boolean;
+    hall_sub_name?: string;
+    hall_rent_per_day?: number;
 }
 
 interface Floor {
@@ -63,7 +65,9 @@ export default function TrainingHalls() {
         floor: "",
         code: "",
         capacity: 0,
-        is_active: true
+        is_active: true,
+        hall_sub_name: "",
+        hall_rent_per_day: 0
     });
     const [saving, setSaving] = useState(false);
     const [viewingHall, setViewingHall] = useState<TrainingHall | null>(null);
@@ -151,7 +155,9 @@ export default function TrainingHalls() {
                 floor: hall.floor || "",
                 code: hall.code,
                 capacity: hall.capacity,
-                is_active: hall.is_active
+                is_active: hall.is_active,
+                hall_sub_name: hall.hall_sub_name || "",
+                hall_rent_per_day: hall.hall_rent_per_day || 0
             });
         } else {
             setEditingHall(null);
@@ -160,7 +166,9 @@ export default function TrainingHalls() {
                 floor: "",
                 code: "",
                 capacity: 0,
-                is_active: true
+                is_active: true,
+                hall_sub_name: "",
+                hall_rent_per_day: 0
             });
         }
         setIsDialogOpen(true);
@@ -444,7 +452,15 @@ export default function TrainingHalls() {
                                         id="name"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="e.g. Main Auditorium"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="sub-name">Sub Name (Optional)</Label>
+                                    <Input
+                                        id="sub-name"
+                                        value={formData.hall_sub_name}
+                                        onChange={(e) => setFormData({ ...formData, hall_sub_name: e.target.value })}
+                                        placeholder="e.g. Wing A"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -476,6 +492,18 @@ export default function TrainingHalls() {
                                         value={formData.capacity}
                                         onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 0 })}
                                         placeholder="e.g. 150"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="rent">Rent Per Day (₹)</Label>
+                                    <Input
+                                        id="rent"
+                                        type="number"
+                                        value={formData.hall_rent_per_day}
+                                        onChange={(e) => setFormData({ ...formData, hall_rent_per_day: parseFloat(e.target.value) || 0 })}
+                                        placeholder="0.00"
+                                        min="0"
+                                        step="0.01"
                                     />
                                 </div>
                                 <div className="flex items-center justify-between">
