@@ -743,7 +743,14 @@ function HallDetailsDialog({ hall, open, onOpenChange }: {
     const fetchSchedule = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/training-halls/${hall.id}/schedule`);
+            // Use local date for timezone adjustment
+            const localDate = new Date();
+            const year = localDate.getFullYear();
+            const month = String(localDate.getMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+
+            const res = await fetch(`/api/training-halls/${hall.id}/schedule?date=${dateStr}`);
             if (res.ok) {
                 setSchedule(await res.json());
             }

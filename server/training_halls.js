@@ -126,16 +126,20 @@ export async function getBookingAllocations(req, res) {
 export async function getHallSchedule(req, res) {
     try {
         const { id } = req.params;
+        const { date } = req.query;
+        // Use client provided date or fallback to server time
+        const queryDate = date || new Date().toISOString().split('T')[0];
+
         const query = `
             SELECT b.id, b.department_agency, b.start_date, b.end_date, b.contact_person_name
             FROM bookings b
             JOIN booking_halls bh ON b.id = bh.booking_id
             WHERE bh.hall_id = ?
-            AND DATE(b.end_date) >= CURDATE()
+            AND DATE(b.end_date) >= DATE(?)
             ORDER BY b.start_date ASC
         `;
 
-        const [rows] = await pool.query(query, [id]);
+        const [rows] = await pool.query(query, [id, queryDate]);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching hall schedule:', error);
