@@ -528,12 +528,21 @@ export async function allocateHallToBooking(req, res) {
 // Get active bookings for today with allocated halls
 export async function getTodayAllocations(req, res) {
   try {
-    const { date } = req.query;
-    // Use client provided date or fallback to server time (YYYY-MM-DD)
-    const queryDate = date || new Date().toISOString().split('T')[0];
+    const { startOfDay, endOfDay } = req.query;
 
-    // We want bookings where the target date is BETWEEN start_date AND end_date
-    // AND they have allocated halls
+    // We need exact range from client to avoid timezone ambiguity
+    // If not provided, fallback to crude server logic (not recommended for production)
+    if (!startOfDay || !endOfDay) {
+      // Fallback logic for safety
+      const now = new Date();
+      const fallbackStart = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+      const fallbackEnd = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+
+      return res.status(400).json({ error: "startOfDay and endOfDay parameters are required" });
+    }
+
+    // We want bookings where the booking overlaps with "Today"
+    // Condition: BookingStart <= EndOfToday AND BookingEnd >= StartOfToday
     const query = `
       SELECT 
         b.id, b.department_agency, b.start_date, b.end_date, 
@@ -541,11 +550,11 @@ export async function getTodayAllocations(req, res) {
       FROM bookings b
       JOIN booking_halls bh ON b.id = bh.booking_id
       JOIN training_halls th ON bh.hall_id = th.id
-      WHERE DATE(b.start_date) <= DATE(?) AND DATE(b.end_date) >= DATE(?)
+      WHERE b.start_date <= ? AND b.end_date >= ?
       ORDER BY th.floor, th.name
     `;
 
-    const [rows] = await pool.query(query, [queryDate, queryDate]);
+    const [rows] = await pool.query(query, [endOfDay, startOfDay]);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching today allocations:', error);

@@ -88,18 +88,16 @@ export default function TrainingHalls() {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Use local date for "Today" to handle timezone differences
-            const localDate = new Date();
-            const year = localDate.getFullYear();
-            const month = String(localDate.getMonth() + 1).padStart(2, '0');
-            const day = String(localDate.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
+            // Calculate Start and End of "Today" in local time, converted to ISO
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+            const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
 
             const headers = { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' };
             const [hallsRes, floorsRes, todayRes] = await Promise.all([
                 fetch("/api/training-halls", { headers }),
                 fetch("/api/floors", { headers }),
-                fetch(`/api/bookings/today-allocations?date=${dateStr}`, { headers })
+                fetch(`/api/bookings/today-allocations?startOfDay=${startOfDay}&endOfDay=${endOfDay}`, { headers })
             ]);
 
             if (hallsRes.ok && floorsRes.ok) {
@@ -744,13 +742,15 @@ function HallDetailsDialog({ hall, open, onOpenChange }: {
         setLoading(true);
         try {
             // Use local date for timezone adjustment
-            const localDate = new Date();
-            const year = localDate.getFullYear();
-            const month = String(localDate.getMonth() + 1).padStart(2, '0');
-            const day = String(localDate.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
+            // We want bookings that overlap with "Start of Today" onwards
+            const now = new Date();
+            // Create a date object for 00:00:00 today
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
 
-            const res = await fetch(`/api/training-halls/${hall.id}/schedule?date=${dateStr}`);
+            const res = await fetch(`/api/training-halls/${hall.id}/schedule?startFrom=${startOfDay}`, {
+                headers: { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' }
+            });
+
             if (res.ok) {
                 setSchedule(await res.json());
             }
