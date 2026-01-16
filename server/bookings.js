@@ -400,11 +400,18 @@ export async function updateBooking(req, res) {
     const dateFields = new Set(['start_date', 'end_date', 'completed_at', 'billed_date']);
     const setParts = fields.map(f => `${f} = ?`).join(', ');
     const values = fields.map(f => {
-      // Convert date fields to MySQL format
-      if (dateFields.has(f) && updates[f]) {
-        return formatDateForMySQL(updates[f]);
+      let val = updates[f];
+
+      // Trim string values
+      if (typeof val === 'string') {
+        val = val.trim();
       }
-      return updates[f];
+
+      // Convert date fields to MySQL format
+      if (dateFields.has(f) && val) {
+        return formatDateForMySQL(val);
+      }
+      return val;
     });
 
     console.log('[DEBUG] SQL Parameters:', values);

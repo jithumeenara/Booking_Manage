@@ -104,10 +104,10 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
       const fy = getFinancialYear(startDate);
 
       const bookingData = {
-        department_agency: departmentAgency,
-        contact_person_name: contactPersonName,
-        contact_person_email: contactPersonEmail,
-        contact_person_phone: contactPersonPhone,
+        department_agency: departmentAgency.trim(),
+        contact_person_name: contactPersonName.trim(),
+        contact_person_email: contactPersonEmail.trim(),
+        contact_person_phone: contactPersonPhone.trim(),
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         num_participants: numParticipants,
