@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useBookings, useDeleteBooking, useUpdateBooking } from "@/hooks/useBookings";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { BookingCard, Booking } from "@/components/BookingCard";
@@ -37,8 +38,9 @@ import { Trash2, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const ManageBookings = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: bookings = [], isLoading: loading, refetch } = useBookings();
+  const deleteBookingMutation = useDeleteBooking();
+  const updateBookingMutation = useUpdateBooking();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | undefined>();
 
@@ -58,35 +60,15 @@ const ManageBookings = () => {
   // Details State
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | undefined>();
 
+  // Sync bookingToAllocate with latest data
   useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const fetchBookings = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/bookings?t=${Date.now()}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch bookings");
+    if (bookingToAllocate && bookings.length > 0) {
+      const updatedBooking = bookings.find((b: Booking) => b.id === bookingToAllocate.id);
+      if (updatedBooking) {
+        setBookingToAllocate(updatedBooking);
       }
-      const data = await res.json();
-      console.log('Bookings fetched:', data.length); // DEBUG LOG
-      setBookings(data || []);
-
-      // Update bookingToAllocate if it exists, so the dialog reflects changes immediately
-      if (bookingToAllocate) {
-        const updatedBooking = data.find((b: Booking) => b.id === bookingToAllocate.id);
-        if (updatedBooking) {
-          setBookingToAllocate(updatedBooking);
-        }
-        toast.error("Failed to fetch bookings");
-      }
-    } catch (error) {
-      toast.error("Error fetching bookings");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [bookings, bookingToAllocate]);
 
   // ... (lines 81-567 ignored/unchanged)
 
@@ -103,15 +85,9 @@ const ManageBookings = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/bookings/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        toast.success("Booking cancelled successfully");
-        fetchBookings();
-      } else {
-        toast.error("Failed to cancel booking");
-      }
+      await deleteBookingMutation.mutateAsync(id);
     } catch (error) {
-      toast.error("Error cancelling booking");
+      // Toast handled in hook
     }
   };
 
@@ -127,18 +103,11 @@ const ManageBookings = () => {
 
   const handleMarkComplete = async (booking: Booking) => {
     try {
-      const res = await fetch(`/api/bookings/${booking.id}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: 'complete' })
+      await updateBookingMutation.mutateAsync({
+        id: booking.id,
+        data: { status: 'complete' }
       });
-
-      if (res.ok) {
-        toast.success("Booking marked as ready for billing");
-        fetchBookings();
-      } else {
-        toast.error("Failed to update status");
-      }
+      toast.success("Booking marked as ready for billing");
     } catch (error) {
       toast.error("Error updating status");
     }
@@ -581,7 +550,7 @@ const ManageBookings = () => {
         <AddBookingDialog
           open={editDialogOpen}
           onOpenChange={handleDialogClose}
-          onBookingAdded={fetchBookings}
+          onBookingAdded={() => refetch()}
           booking={selectedBooking}
         />
 
@@ -590,7 +559,7 @@ const ManageBookings = () => {
             open={allocateDialogOpen}
             onOpenChange={setAllocateDialogOpen}
             booking={bookingToAllocate}
-            onAllocated={fetchBookings}
+            onAllocated={() => refetch()}
           />
         )}
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useCreateBooking, useUpdateBooking } from "@/hooks/useBookings";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,8 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
 
 
 
-  // Track if we have already populated the form for this booking ID
+  const createBookingMutation = useCreateBooking();
+  const updateBookingMutation = useUpdateBooking();
   const lastPopulatedId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -137,28 +139,15 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
 
       console.log('Submitting booking data:', bookingData);
 
-      const res = booking
-        ? await fetch(`/api/bookings/${booking.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(bookingData),
-        })
-        : await fetch('/api/bookings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(bookingData),
-        });
+      console.log('Submitting booking data:', bookingData);
 
-      if (!res.ok) {
-        const data = await res.json();
-        // Show specific validation details if available
-        if (data.details && typeof data.details === 'object') {
-          const messages = Object.values(data.details).flat().map((d: any) => d._errors || []).flat();
-          if (messages.length > 0) throw new Error(messages.join(', '));
-        }
-        throw new Error(data.error || 'Failed to save booking');
+      if (booking) {
+        await updateBookingMutation.mutateAsync({
+          id: booking.id,
+          data: bookingData
+        });
+      } else {
+        await createBookingMutation.mutateAsync(bookingData);
       }
 
 
@@ -384,8 +373,8 @@ export const AddBookingDialog = ({ open, onOpenChange, onBookingAdded, booking }
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">
-              {booking ? "Update Booking" : "Add Booking"}
+            <Button type="submit" className="flex-1" disabled={createBookingMutation.isPending || updateBookingMutation.isPending}>
+              {(createBookingMutation.isPending || updateBookingMutation.isPending) ? "Saving..." : (booking ? "Update Booking" : "Add Booking")}
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
